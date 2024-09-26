@@ -14,30 +14,33 @@ import "./styles.css";
 import { EditPost, LoadingButton, UserAvatar } from "..";
 import usePostsStore from "@/zustand/usePostsStore";
 
-const DialogCreateCommnet = ({ open, onOpenChange, data, postId }) => {
-  const { createCommentPost, isCreateLoading } = usePostsStore();
+const DialogCreateCommnet = ({
+  open,
+  onOpenChange,
+  data,
+  postId,
+  commentId,
+  context,
+}) => {
+  const { updateCommentPost, isCreateLoading } = usePostsStore();
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ bold: false, italic: false }),
       Placeholder.configure({ placeholder: `Trả lời ${data.userName}` }),
     ],
+    content: `<p>${context}</p>`,
   });
 
   const input = editor?.getText({ blockSeparator: "\n" }) || "";
 
   const handleSubmit = async () => {
-    await createCommentPost(postId, { context: input });
-    if (!isCreateLoading) onClose();
-  };
-
-  const onClose = () => {
-    onOpenChange();
-    editor.commands.clearContent();
+    await updateCommentPost(postId, commentId, { context: input });
+    if (!isCreateLoading) onOpenChange();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={"max-sm:size-full md:w-[80vh] max-w-none"}>
         <DialogHeader>
           <DialogTitle>Bình luận</DialogTitle>
@@ -65,7 +68,7 @@ const DialogCreateCommnet = ({ open, onOpenChange, data, postId }) => {
             variant="outline"
             onClick={handleSubmit}
           >
-            Đăng
+            Chỉnh sửa
           </LoadingButton>
         </DialogFooter>
       </DialogContent>

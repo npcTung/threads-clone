@@ -11,8 +11,8 @@ const App = () => {
         <ThemeProvider storageKey="vite-ui-theme">
           <Router />
         </ThemeProvider>
-        <Toaster />
       </BrowserRouter>
+      <Toaster position="bottom-right" richColors expand={false} closeButton />
     </GoogleOAuthProvider>
   );
 };

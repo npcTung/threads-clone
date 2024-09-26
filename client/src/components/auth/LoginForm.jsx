@@ -1,28 +1,37 @@
-import { loginSchema } from "@/lib/validation";
+import { loginSchema, setPassword } from "@/lib/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  FinalRegister,
   Form,
   FormInput,
   FormPassword,
+  Input,
   LoadingButton,
 } from "..";
-import icons from "@/lib/icons";
 import { Link, useNavigate } from "react-router-dom";
 import path from "@/lib/path";
 import { cn } from "@/lib/utils";
 import { useGoogleLogin } from "@react-oauth/google";
-
-const { AlertCircle } = icons;
+import * as apis from "@/apis";
+import useCurrentStore from "@/zustand/useCurrentStore";
+import { toast } from "sonner";
 
 const LoginForm = () => {
-  const [error, setError] = useState();
+  const [isSetupPassword, setIsSetupPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSendEmail, setIsSendEmail] = useState(false);
+  const [showFinalRegister, setShowFinalRegister] = useState(false);
+  const { setGoogleData, setEmail, setIsLoggedIn } = useCurrentStore();
   const navigate = useNavigate();
+
   const form = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -31,30 +40,76 @@ const LoginForm = () => {
     },
   });
 
-  const onSubmit = (data) => {
-    console.log(data);
-    navigate(path.HOME);
+  const onSubmit = async (data) => {
+    try {
+      setIsLoading(true);
+      const response = await apis.checkVerifiedUserFromUserName(data.userName);
+      if (response.isVerified) {
+        const loginUser = await apis.login(data);
+        if (loginUser.success) {
+          setIsLoggedIn(true);
+          toast.success(loginUser.mes);
+          navigate(path.HOME);
+        }
+      } else {
+        setEmail(response.email);
+        setIsSendEmail(true);
+      }
+    } catch (error) {
+      toast.error(error.response.data.mes);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmitInGoogle = useGoogleLogin({
-    onSuccess: (tokenResponse) => {
-      console.log(tokenResponse);
-      navigate(path.HOME);
+    onSuccess: async (tokenResponse) => {
+      const response = await apis.getCredentialsFromAccessToken(
+        tokenResponse.access_token
+      );
+
+      if (response.status === 200) {
+        setGoogleData({
+          email: response.data.email,
+          avatarUrl: response.data.picture,
+          displayName: response.data.name,
+          verified: response.data.verified_email,
+        });
+
+        const user = await apis.checkNewUserFromEmail(response.data.email);
+
+        if (user.hasUser) {
+          toast.success("Đăng nhập thành công.");
+          setIsLoggedIn(true);
+          setGoogleData(null);
+          navigate(path.HOME);
+        } else setIsSetupPassword(true);
+      }
     },
-    onError: (err) => console.error(err),
+    onError: (err) => toast.error(err),
   });
 
   return (
     <>
+      {/* Setup user login width google */}
+      <DialogSetupPassword
+        open={isSetupPassword}
+        onOpenChange={() => setIsSetupPassword(false)}
+      />
+      {/* send email verify */}
+      <DialogSendEmail
+        open={isSendEmail}
+        onOpenChange={setIsSendEmail}
+        setShowFinalRegister={setShowFinalRegister}
+      />
+      {/* final register */}
+      <FinalRegister
+        open={showFinalRegister}
+        onOpenChange={() => setShowFinalRegister(false)}
+      />
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
-          {error && (
-            <Alert variant={"destructive"}>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           <FormInput
             form={form}
             lable="Tên người dùng"
@@ -63,7 +118,7 @@ const LoginForm = () => {
           />
           <FormPassword
             form={form}
-            lable="Mật khẩu<"
+            lable="Mật khẩu"
             name="password"
             placeholder="Mật khẩu..."
           />
@@ -75,7 +130,7 @@ const LoginForm = () => {
               Quên mật khẩu?
             </Link>
           </div>
-          <LoadingButton type="submit" className="w-full">
+          <LoadingButton loading={isLoading} type="submit" className="w-full">
             Đăng nhập
           </LoadingButton>
         </form>
@@ -127,5 +182,132 @@ const GoogleIcon = ({ size, className }) => {
         d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
       ></path>
     </svg>
+  );
+};
+
+const DialogSetupPassword = ({ open, onOpenChange }) => {
+  const { googleData, setGoogleData, setIsLoggedIn } = useCurrentStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const form = useForm({
+    resolver: zodResolver(setPassword),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+      userName: "",
+    },
+  });
+
+  const onSubmit = async (data) => {
+    const { confirmPassword, ...payload } = { ...data, ...googleData };
+
+    try {
+      setIsLoading(true);
+      const response = await apis.loginWithGoogle(payload);
+      if (response.success) {
+        toast.success(response.mes);
+        setIsLoggedIn(true);
+        setGoogleData(null);
+        onOpenChange(false);
+        navigate(path.HOME);
+      }
+    } catch (error) {
+      toast.error(error.response.data.mes);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Thiết lập tài khoản</DialogTitle>
+          <DialogDescription>
+            Đây là tài khoản mới. Vui lòng điền đầy đủ thông tin cho tài khoản
+            của bạn
+          </DialogDescription>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-3 border-t py-3"
+            >
+              <FormInput
+                form={form}
+                lable="Tên người dùng"
+                name="userName"
+                placeholder="Tên người dùng..."
+              />
+              <FormPassword
+                form={form}
+                lable="Mật khẩu"
+                name="password"
+                placeholder="Mật khẩu..."
+              />
+              <FormPassword
+                form={form}
+                lable="Nhập lại mật khẩu"
+                name="confirmPassword"
+                placeholder="Nhập lại mật khẩu..."
+              />
+              <LoadingButton
+                loading={isLoading}
+                type="submit"
+                className="w-full"
+              >
+                Thiết lập
+              </LoadingButton>
+            </form>
+          </Form>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const DialogSendEmail = ({ open, onOpenChange, setShowFinalRegister }) => {
+  const { email } = useCurrentStore();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handelSendEmail = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apis.sendOtp(email);
+      if (response.success) {
+        toast.success(response.mes);
+        setShowFinalRegister(true);
+        onOpenChange();
+      }
+    } catch (error) {
+      toast.error(error.response.data.mes);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="space-y-3">
+        <DialogHeader>
+          <DialogTitle>Gửi email xác minh tài khoản</DialogTitle>
+          <DialogDescription />
+        </DialogHeader>
+        <Input
+          type={"email"}
+          id={"email"}
+          placeholder="Địa chỉ email..."
+          value={email}
+          disabled
+        />
+        <LoadingButton
+          loading={isLoading}
+          onClick={handelSendEmail}
+          className="w-full"
+        >
+          Gửi email
+        </LoadingButton>
+      </DialogContent>
+    </Dialog>
   );
 };

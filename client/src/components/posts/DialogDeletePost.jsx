@@ -9,8 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui";
+import PropTypes from "prop-types";
+import usePostsStore from "@/zustand/usePostsStore";
+import { LoadingButton } from "..";
 
-const DialogDeletePost = ({ open, onOpenChange }) => {
+const DialogDeletePost = ({ open, onOpenChange, postId }) => {
+  const { deletePost, isCreateLoading } = usePostsStore();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -24,12 +28,13 @@ const DialogDeletePost = ({ open, onOpenChange }) => {
           <DialogClose asChild>
             <Button variant={"outline"}>Hủy</Button>
           </DialogClose>
-          <Button
+          <LoadingButton
+            loading={isCreateLoading}
             variant="destructive"
-            onClick={() => console.log("Delete post")}
+            onClick={() => deletePost(postId)}
           >
             Xóa
-          </Button>
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -37,3 +42,8 @@ const DialogDeletePost = ({ open, onOpenChange }) => {
 };
 
 export default DialogDeletePost;
+
+DialogDeletePost.propTypes = {
+  onOpenChange: PropTypes.func.isRequired,
+  postId: PropTypes.string.isRequired,
+};

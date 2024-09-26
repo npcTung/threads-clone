@@ -14,16 +14,33 @@ import { LoadingButton } from "..";
 import "./styles.css";
 import { useNavigate } from "react-router-dom";
 import path from "@/lib/path";
+import * as apis from "@/apis";
+import { toast } from "sonner";
+import useCurrentStore from "@/zustand/useCurrentStore";
 
 const FinalRegister = ({ open, onOpenChange }) => {
   const [otp, setOtp] = useState("");
+  const { email, setEmail, setIsLoggedIn } = useCurrentStore();
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleOtpChange = () => {
-    console.log(otp);
-    setOtp("");
-    onOpenChange();
-    navigate(`/${path.AUTH}/${path.LOGIN}`);
+  const handleOtpChange = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apis.verifyOtp({ otp, email });
+      if (response.success) {
+        toast.success(response.mes);
+        setIsLoggedIn(true);
+        setOtp("");
+        setEmail(null);
+        onOpenChange();
+        navigate(path.HOME);
+      }
+    } catch (error) {
+      toast.error(error.response.data.mes);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -52,7 +69,9 @@ const FinalRegister = ({ open, onOpenChange }) => {
             </InputOTPGroup>
           </InputOTP>
         </div>
-        <LoadingButton onClick={handleOtpChange}>Gửi</LoadingButton>
+        <LoadingButton loading={isLoading} onClick={handleOtpChange}>
+          Gửi
+        </LoadingButton>
       </DialogContent>
     </Dialog>
   );

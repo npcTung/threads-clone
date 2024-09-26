@@ -20,11 +20,11 @@ import usePostsStore from "@/zustand/usePostsStore";
 
 const { ImagePlus } = icons;
 
-const DialogCreatePost = ({ open, onOpenChange }) => {
+const DialogEditPost = ({ open, onOpenChange, data }) => {
   const [files, setFiles] = useState([]);
-  const [attachments, setAttachments] = useState([{ type: "", url: [] }]);
+  const [attachments, setAttachments] = useState(data.fileUrls);
   const { currentData } = useCurrentStore();
-  const { createPost, isCreateLoading } = usePostsStore();
+  const { updatePost, isCreateLoading } = usePostsStore();
   const maxSize = 50 * 1024 * 1024;
 
   const editor = useEditor({
@@ -32,6 +32,7 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
       StarterKit.configure({ bold: false, italic: false }),
       Placeholder.configure({ placeholder: "Có gì mới?" }),
     ],
+    content: `<p>${data.context}</p>`,
   });
 
   const input = editor?.getText({ blockSeparator: "\n" }) || "";
@@ -61,22 +62,14 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
 
       const payload = {
         context: input,
-        postedBy: currentData._id,
         files: files?.length ? Array.from(files) : [],
       };
-      await createPost(payload);
-      if (!isCreateLoading) onClose();
+      await updatePost(data._id, payload);
+      if (!isCreateLoading) onOpenChange();
     } else
       toast.warning(
         files.length > 10 && "Số lượng file không được vượt quá 10."
       );
-  };
-
-  const onClose = () => {
-    onOpenChange();
-    setFiles([]);
-    setAttachments([]);
-    editor.commands.clearContent();
   };
 
   useEffect(() => {
@@ -84,10 +77,10 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
   }, [files]);
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={"max-sm:size-full md:w-[80vh] max-w-none"}>
         <DialogHeader>
-          <DialogTitle>Tạo bài viết</DialogTitle>
+          <DialogTitle>Chỉnh sửa bài viết</DialogTitle>
           <DialogDescription />
         </DialogHeader>
         <div className="flex items-start justify-between gap-3">
@@ -125,7 +118,7 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
             variant="outline"
             onClick={handleSubmit}
           >
-            Tạo
+            Chỉnh sửa
           </LoadingButton>
         </DialogFooter>
       </DialogContent>
@@ -133,4 +126,4 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
   );
 };
 
-export default DialogCreatePost;
+export default DialogEditPost;

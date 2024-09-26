@@ -13,12 +13,17 @@ import {
   LoadingButton,
 } from "..";
 import icons from "@/lib/icons";
+import * as apis from "@/apis";
+import { toast } from "sonner";
+import useCurrentStore from "@/zustand/useCurrentStore";
 
 const { AlertCircle } = icons;
 
 const SignUpForm = () => {
   const [error, setError] = useState();
+  const [isLoading, setIsLoading] = useState(false);
   const [showFinalRegister, setShowFinalRegister] = useState(false);
+  const { setEmail } = useCurrentStore();
 
   const form = useForm({
     resolver: zodResolver(signUpSchema),
@@ -31,9 +36,22 @@ const SignUpForm = () => {
     },
   });
 
-  const onSubmit = (data) => {
-    console.log(data);
-    setShowFinalRegister(true);
+  const onSubmit = async (data) => {
+    const { confirmPassword, ...payload } = data;
+
+    try {
+      setIsLoading(true);
+      const response = await apis.register(payload);
+      if (response.success) {
+        setEmail(payload.email);
+        toast.success(response.mes);
+        setShowFinalRegister(true);
+      }
+    } catch (error) {
+      setError(error.response.data.mes);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -83,7 +101,7 @@ const SignUpForm = () => {
             name="confirmPassword"
             placeholder="Nhập lại mật khẩu..."
           />
-          <LoadingButton type="submit" className="w-full">
+          <LoadingButton loading={isLoading} type="submit" className="w-full">
             Tạo tài khoản
           </LoadingButton>
         </form>

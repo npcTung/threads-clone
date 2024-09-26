@@ -6,11 +6,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  Input,
+  Textarea,
 } from "../ui";
 import { cn } from "@/lib/utils";
 
-const FormInput = ({
+const FormTextarea = ({
   form,
   lable,
   name,
@@ -26,7 +26,7 @@ const FormInput = ({
         <FormItem>
           {lable && <FormLabel>{lable}</FormLabel>}
           <FormControl>
-            <Input
+            <Textarea
               placeholder={placeholder}
               {...field}
               type={type}
@@ -40,9 +40,9 @@ const FormInput = ({
   );
 };
 
-export default FormInput;
+export default FormTextarea;
 
-FormInput.propTypes = {
+FormTextarea.propTypes = {
   form: PropTypes.shape({ control: PropTypes.any.isRequired }),
   lable: PropTypes.string,
   name: PropTypes.string.isRequired,

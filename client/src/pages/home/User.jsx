@@ -13,49 +13,98 @@ import {
   DropdownMenuTrigger,
   FollowButton,
   FollowerCount,
+  LoadingScreen,
+  NotFound,
   Post,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
   UserAvatar,
+  UserTooltip,
 } from "@/components";
-import { countryAddress, dataPosts, user } from "@/data";
+import { countryAddress } from "@/data";
 import React, { useEffect, useState } from "react";
 import femaleIcon from "@/assets/female-icon.svg";
 import maleIcon from "@/assets/male-icon.svg";
 import icons from "@/lib/icons";
-import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
 import * as apis from "@/apis";
+import { toast } from "sonner";
+import useCurrentStore from "@/zustand/useCurrentStore";
+import usePostsStore from "@/zustand/usePostsStore";
 
 const { CircleEllipsis, Link2, Info, UserX, Dot } = icons;
 
 const User = () => {
+  const { currentData } = useCurrentStore();
+  const { userPosts, getUserPosts, isLoading, setIsLoading } = usePostsStore();
+  const { user_name } = useParams();
+  const [user, setUser] = useState(null);
+
+  const fetchGetUser = async (userName) => {
+    try {
+      setIsLoading(true);
+      const response = await apis.getUser(userName);
+      if (response) setUser(response.data);
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user_name) {
+      fetchGetUser(user_name);
+      getUserPosts(user_name);
+    }
+  }, [user_name]);
+
+  if (isLoading) return <LoadingScreen />;
+  if (!user) return <NotFound />;
+
   return (
-    <div className="w-[720px] mx-auto my-10 border min-h-full space-y-5 md:rounded-2xl">
-      <UserHeader userData={user} />
-      {dataPosts.map((post, idx) => (
-        <Post
-          key={post.id}
-          className={idx !== Array(20).length - 1 && "border-b"}
-          data={post}
-        />
-      ))}
+    <div className="max-w-[720px] w-full mx-auto mb-10 border space-y-5 md:rounded-2xl bg-card">
+      <UserHeader
+        userData={user?._id === currentData._id ? currentData : user}
+        isEdit={user?._id === currentData?._id}
+        currentData={currentData}
+      />
+      {userPosts?.length > 0 ? (
+        userPosts.map((post, idx) => (
+          <Post
+            key={post._id}
+            className={idx !== userPosts.length - 1 && "border-b"}
+            data={post}
+            isEdit={user?._id === currentData?._id}
+          />
+        ))
+      ) : (
+        <div className="p-5 flex items-center justify-center">
+          <span>Không có bài viết nào</span>
+        </div>
+      )}
     </div>
   );
 };
 
 export default User;
 
-const UserHeader = ({ userData }) => {
+const UserHeader = ({ userData, isEdit, currentData }) => {
   const [showAvatar, setShowAvatar] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [showEditUser, setShowEditUser] = useState(false);
+  const [showFollow, setShowFollow] = useState(false);
+  const followingId = currentData.following.map((followId) => followId._id);
 
   return (
     <>
       {/* show avatar */}
       <DialogFullAvatar
-        avatarUrl={user.avatarUrl}
+        userData={userData}
         open={showAvatar}
         onOpenChange={() => setShowAvatar(false)}
       />
@@ -71,6 +120,12 @@ const UserHeader = ({ userData }) => {
         onOpenChange={() => setShowEditUser(false)}
         open={showEditUser}
       />
+      {/* show follower following */}
+      <DialogFollowerFollowing
+        open={showFollow}
+        onOpenChange={setShowFollow}
+        data={userData?._id === currentData._id ? currentData : userData}
+      />
       <div className="border-b p-5 space-y-5">
         <div className="flex w-full flex-col gap-3 break-words px-1 py-2.5 md:min-w-52">
           <div className="flex items-center justify-between gap-20">
@@ -79,37 +134,37 @@ const UserHeader = ({ userData }) => {
                 className="text-lg font-semibold hover:underline cursor-pointer"
                 onClick={() => setShowInfo(true)}
               >
-                {userData.displayName}
+                {userData?.displayName}
               </span>
               <small className="flex items-center gap-1 text-muted-foreground">
-                @{userData.userName}{" "}
-                {userData.gender === "female" && (
+                @{userData?.userName}{" "}
+                {userData?.gender === "female" && (
                   <img
                     src={femaleIcon}
-                    alt={`${userData.gender} icon`}
+                    alt={`${userData?.gender} icon`}
                     className="size-4"
                   />
                 )}
-                {userData.gender === "male" && (
+                {userData?.gender === "male" && (
                   <img
                     src={maleIcon}
-                    alt={`${userData.gender} icon`}
+                    alt={`${userData?.gender} icon`}
                     className="size-4"
                   />
                 )}
               </small>
             </div>
             <UserAvatar
-              avatarUrl={userData.avatarUrl}
-              displayName={userData.displayName}
+              avatarUrl={userData?.avatarUrl}
+              displayName={userData?.displayName}
               size={100}
               className={"cursor-pointer"}
               handelOnclick={() => setShowAvatar(true)}
             />
           </div>
-          {user.bio && (
+          {userData?.bio && (
             <div className="line-clamp-4 whitespace-pre-line">
-              {userData.bio}
+              {userData?.bio}
             </div>
           )}
         </div>
@@ -117,37 +172,41 @@ const UserHeader = ({ userData }) => {
           <div className="flex items-center gap-1">
             <FollowerCount
               className={"text-sm opacity-50"}
-              // userId={user.id}
-              // initialState={followerState}
+              follower={userData?.follower.length}
+              handelOnclick={() => setShowFollow(true)}
             />
-            <Dot className="opacity-50" />
-            <Link
-              to={user.link}
-              target="_blank"
-              className={"text-sm opacity-50 hover:underline whitespace-nowrap"}
-            >
-              {user.link}
-            </Link>
+            {userData?.link && (
+              <>
+                <Dot className="opacity-50" />
+                <Link
+                  to={userData?.link}
+                  target="_blank"
+                  className={
+                    "text-sm opacity-50 hover:underline whitespace-nowrap"
+                  }
+                >
+                  {userData?.link}
+                </Link>
+              </>
+            )}
           </div>
-          {true ? <></> : <DropMenu onOpenChange={() => setShowInfo(true)} />}
+          {isEdit ? <></> : <DropMenu onOpenChange={() => setShowInfo(true)} />}
         </div>
-        {true ? (
+        {isEdit ? (
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full text-md"
             onClick={() => setShowEditUser(true)}
           >
             Chỉnh sửa trang cá nhân
           </Button>
         ) : (
           <div className="flex items-center gap-5">
-            {/* {loggedInUser.id !== user.id && ( */}
             <FollowButton
               className={"flex-1"}
-              // userId={user.id}
-              // initialState={followerState}
+              isFollow={followingId.includes(userData._id)}
+              userId={userData._id}
             />
-            {/* )} */}
             <Button variant={"outline"} className={"flex-1"}>
               Nhắn tin
             </Button>
@@ -159,18 +218,10 @@ const UserHeader = ({ userData }) => {
 };
 
 const DropMenu = ({ onOpenChange }) => {
-  const { toast } = useToast();
-
   const copyUrl = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
-      toast({
-        variant: "default",
-        title: "Successfully copied.",
-        description: "User copyed url.",
-        duration: 3000,
-        className: "bg-green-600 text-white border-green-600",
-      });
+      toast.success("Đã sao chép url của người dùng.");
     });
   };
 
@@ -204,7 +255,7 @@ const DropMenu = ({ onOpenChange }) => {
   );
 };
 
-const DialogFullAvatar = ({ avatarUrl, open, onOpenChange }) => {
+const DialogFullAvatar = ({ userData, open, onOpenChange }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -215,7 +266,11 @@ const DialogFullAvatar = ({ avatarUrl, open, onOpenChange }) => {
           <DialogTitle></DialogTitle>
           <DialogDescription></DialogDescription>
         </DialogHeader>
-        <UserAvatar avatarUrl={avatarUrl} size={250} />
+        <UserAvatar
+          avatarUrl={userData?.avatarUrl}
+          displayName={userData?.displayName}
+          size={250}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -230,11 +285,11 @@ const DialogInfo = ({ userData, open, onOpenChange }) => {
 
   const getLocation = async () => {
     try {
-      const response = await apis.ipAddress();
+      const response = await apis.ipAddress(import.meta.env.VITE_IP_TOKEN);
       const { city, country, postal } = response.data;
       setLocation({ city, country, postal });
     } catch (error) {
-      console.error("Error fetching location: ", error);
+      toast.error(error.message);
     }
   };
 
@@ -244,25 +299,27 @@ const DialogInfo = ({ userData, open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogHeader className={"p-0"}>
+        <DialogTitle></DialogTitle>
+        <DialogDescription></DialogDescription>
+      </DialogHeader>
       <DialogContent className="w-[400px]">
-        <DialogHeader className={"p-0"}>
-          <DialogTitle></DialogTitle>
-          <DialogDescription></DialogDescription>
-        </DialogHeader>
         <div className="flex items-center justify-between space-x-5">
           <div className="flex flex-col w-full space-y-1 border-b pb-2">
             <span className="font-semibold">Tên</span>
-            <span className="text-sm">{`${userData.displayName} (@${userData.userName})`}</span>
+            <span className="text-sm">{`${userData?.displayName} (@${userData?.userName})`}</span>
           </div>
-          <UserAvatar avatarUrl={userData.avatarUrl} size={50} />
+          <UserAvatar avatarUrl={userData?.avatarUrl} size={50} />
         </div>
         <div className="flex flex-col py-2 border-b">
           <span className="font-semibold">Ngày tham gia</span>
-          <span className="text-sm">
-            {formatDate(userData.createdAt, "EEEE, d MMMM, yyyy", {
-              locale: vi,
-            })}
-          </span>
+          {userData?.createdAt && (
+            <span className="text-sm">
+              {formatDate(userData?.createdAt, "EEEE, d MMMM, yyyy", {
+                locale: vi,
+              })}
+            </span>
+          )}
         </div>
         <div className="flex flex-col py-2">
           <span className="font-semibold">Địa điểm</span>
@@ -280,5 +337,82 @@ const DialogInfo = ({ userData, open, onOpenChange }) => {
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+const DialogFollowerFollowing = ({ open, onOpenChange, data }) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogHeader>
+        <DialogTitle />
+        <DialogDescription />
+      </DialogHeader>
+      <DialogContent className="max-h-[70%] overflow-y-auto">
+        <Tabs defaultValue="follower">
+          <TabsList className={"w-full flex gap-5"}>
+            <TabsTrigger value="follower" className="flex-1">
+              Người theo dõi
+            </TabsTrigger>
+            <TabsTrigger value="following" className="flex-1">
+              Đang theo dõi
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="follower">
+            {data.follower.length > 0 ? (
+              data.follower.map((follow) => (
+                <UserPreview key={follow._id} data={follow} />
+              ))
+            ) : (
+              <span className="text-center w-full flex items-center justify-center p-5">
+                Không có người theo dõi
+              </span>
+            )}
+          </TabsContent>
+          <TabsContent value="following">
+            {data.following.length > 0 ? (
+              data.following.map((follow) => (
+                <UserPreview key={follow._id} data={follow} />
+              ))
+            ) : (
+              <span className="text-center w-full flex items-center justify-center p-5">
+                Không theo dõi ai
+              </span>
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const UserPreview = ({ data }) => {
+  return (
+    <div className={"w-full flex items-center justify-between p-5"}>
+      <div className="flex gap-3 w-full">
+        <div className="flex flex-col items-center">
+          <Link to={`/${data.userName}`}>
+            <UserAvatar avatarUrl={data.avatarUrl} />
+          </Link>
+        </div>
+        <Link to={`/${data.userName}`} className="w-full">
+          <div className="flex-1 w-full space-y-5 border-b pb-2">
+            <div className="flex flex-col">
+              <div className="flex justify-between w-full">
+                <div className="flex w-full items-center">
+                  <span className="text-sm font-medium hover:underline">
+                    {data.userName}
+                  </span>
+                </div>
+              </div>
+              <span className="text-sm opacity-50">{data.displayName}</span>
+            </div>
+            <FollowerCount
+              className={"text-sm"}
+              follower={data.follower.length}
+            />
+          </div>
+        </Link>
+      </div>
+    </div>
   );
 };

@@ -6,10 +6,6 @@ export * from "./tooltip";
 export * from "./dropdown-menu";
 // carousel
 export * from "./carousel";
-// toast
-export * from "./toast";
-// toaster
-export * from "./toaster";
 // dialog
 export * from "./dialog";
 // input
@@ -26,3 +22,7 @@ export * from "./label";
 export * from "./alert";
 // input-otp
 export * from "./input-otp";
+// sonner
+export * from "./sonner";
+// tabs
+export * from "./tabs";

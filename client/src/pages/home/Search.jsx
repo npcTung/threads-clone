@@ -1,33 +1,70 @@
 import {
   FollowerCount,
   Input,
+  LoadingScreen,
   UserAvatar,
   UserTooltip,
   useTheme,
 } from "@/components";
-import { users } from "@/data";
 import icons from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import * as apis from "@/apis";
+import { toast } from "sonner";
+import useDebounce from "@/hooks/useDebounce";
 
 const { SearchIcon } = icons;
 
 const Search = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState([]);
+  const [queries, setQueries] = useState({ q: "" });
+  const queriesDebounce = useDebounce(queries, 800);
+
+  const fetchGetUsers = async (queries) => {
+    try {
+      setIsLoading(true);
+      const response = await apis.getUsers(queries);
+      if (response.success) setUsers(response.data);
+    } catch (error) {
+      console.error(error.response.data.mes);
+      setQueries([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGetUsers(queriesDebounce);
+  }, [queriesDebounce]);
+
   return (
-    <div className="w-[720px] mx-auto my-10 border min-h-full p-6 space-y-5 md:rounded-2xl">
-      <SearchField />
-      <div>
-        <span className="font-semibold text-sm opacity-50">Gợi ý theo dõi</span>
-      </div>
-      <UserPreviews datas={users} />
+    <div className="max-w-[720px] w-full p-5 mx-auto mb-10 border space-y-5 md:rounded-2xl bg-card">
+      <SearchField setQueries={setQueries} />
+      {isLoading ? (
+        <LoadingScreen />
+      ) : (
+        <>
+          <div>
+            <span className="font-semibold text-sm opacity-50">
+              Gợi ý theo dõi
+            </span>
+          </div>
+          {users.length > 0 ? (
+            <UserPreviews datas={users} />
+          ) : (
+            <span>Không có người dùng nào.</span>
+          )}
+        </>
+      )}
     </div>
   );
 };
 
 export default Search;
 
-const SearchField = () => {
+const SearchField = ({ setQueries }) => {
   const { theme } = useTheme();
 
   const handleSumbit = (e) => {
@@ -43,6 +80,7 @@ const SearchField = () => {
         <SearchIcon className="absolute left-3 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground" />
         <Input
           name="q"
+          onChange={(e) => setQueries({ q: e.target.value })}
           placeholder="Search"
           className={cn(
             "ps-10",
@@ -57,9 +95,8 @@ const SearchField = () => {
 const UserPreviews = ({ datas }) => {
   return (
     <div>
-      {datas.map((data) => (
-        <UserPreview key={data.id} data={data} />
-      ))}
+      {datas?.length &&
+        datas.map((data) => <UserPreview key={data._id} data={data} />)}
     </div>
   );
 };
@@ -87,7 +124,10 @@ const UserPreview = ({ data }) => {
               </div>
               <span className="text-sm opacity-50">{data.displayName}</span>
             </div>
-            <FollowerCount className={"text-sm"} />
+            <FollowerCount
+              className={"text-sm"}
+              follower={data.follower.length}
+            />
           </div>
         </Link>
       </div>

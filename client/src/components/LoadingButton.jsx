@@ -2,6 +2,7 @@ import icons from "@/lib/icons";
 import React from "react";
 import { Button } from "./ui";
 import { cn } from "@/lib/utils";
+import PropTypes from "prop-types";
 
 const { LoaderCircle } = icons;
 
@@ -19,3 +20,9 @@ const LoadingButton = ({ loading, disabled, className, ...props }) => {
 };
 
 export default LoadingButton;
+
+LoadingButton.prototype = {
+  loading: PropTypes.bool,
+  disabled: PropTypes.bool,
+  className: PropTypes.string,
+};

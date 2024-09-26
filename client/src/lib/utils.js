@@ -9,13 +9,17 @@ export function cn(...inputs) {
 
 export function formatRelativeDate(form) {
   const currentDate = new Date();
-  if (currentDate.getTime() - form.getTime() < 24 * 60 * 60 * 1000) {
-    return formatDistanceToNowStrict(form, { addSuffix: true, locale: vi });
+  const relativeDate = new Date(form);
+  if (currentDate.getTime() - relativeDate.getTime() < 24 * 60 * 60 * 1000) {
+    return formatDistanceToNowStrict(relativeDate, {
+      addSuffix: true,
+      locale: vi,
+    });
   } else {
-    if (currentDate.getFullYear() === form.getFullYear()) {
-      return formatDate(form, "d MMM", { locale: vi });
+    if (currentDate.getFullYear() === relativeDate.getFullYear()) {
+      return formatDate(relativeDate, "d MMM", { locale: vi });
     } else {
-      return formatDate(form, "d MMM, yyy", { locale: vi });
+      return formatDate(relativeDate, "d MMM, yyy", { locale: vi });
     }
   }
 }

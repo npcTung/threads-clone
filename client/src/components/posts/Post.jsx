@@ -1,9 +1,10 @@
 import { cn, formatRelativeDate, formmatNumber } from "@/lib/utils";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   DialogCreateCommnet,
   DialogDeletePost,
+  DialogEditPost,
   DialogMedias,
   DropPost,
   MediaPreviews,
@@ -18,6 +19,8 @@ import icons from "@/lib/icons";
 import path from "@/lib/path";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
+import useCurrentStore from "@/zustand/useCurrentStore";
+import usePostsStore from "@/zustand/usePostsStore";
 
 const { Dot, Heart, MessageSquare } = icons;
 
@@ -25,25 +28,39 @@ const Post = ({ className, data }) => {
   const [showMedia, setShowMedia] = useState(false);
   const [showDeletePost, setShowDeletePost] = useState(false);
   const [showCreateCommnet, setShowCreateCommnet] = useState(false);
+  const [showEditPost, setShowEditPost] = useState(false);
+  const { currentData } = useCurrentStore();
+  const { like_unlike } = usePostsStore();
+  const isLike = data.likes.includes(currentData._id);
 
   return (
     <>
       {/* show medias */}
-      <DialogMedias
-        open={showMedia}
-        onOpenChange={() => setShowMedia(false)}
-        attachments={data.imageUrl}
-      />
+      {data?.fileUrls?.length > 0 && (
+        <DialogMedias
+          open={showMedia}
+          onOpenChange={setShowMedia}
+          attachments={data.fileUrls}
+        />
+      )}
       {/* delete post */}
       <DialogDeletePost
         open={showDeletePost}
-        onOpenChange={() => setShowDeletePost(false)}
+        onOpenChange={setShowDeletePost}
+        postId={data?._id}
       />
       {/* comment post */}
       <DialogCreateCommnet
-        userName={data.user.userName}
-        onOpenChange={() => setShowCreateCommnet(false)}
+        data={currentData}
+        onOpenChange={setShowCreateCommnet}
         open={showCreateCommnet}
+        postId={data._id}
+      />
+      {/* edit post */}
+      <DialogEditPost
+        data={data}
+        onOpenChange={setShowEditPost}
+        open={showEditPost}
       />
       <div
         className={cn(
@@ -53,10 +70,10 @@ const Post = ({ className, data }) => {
       >
         <div className="flex gap-3 w-full">
           <div className="flex flex-col items-center">
-            <Link to={`/${data.user.userName}`}>
+            <Link to={`/${data?.postedBy?.userName}`}>
               <UserAvatar
-                avatarUrl={data.user.avatarUrl}
-                displayName={data.user.displayName}
+                avatarUrl={data?.postedBy?.avatarUrl}
+                displayName={data?.postedBy?.displayName}
               />
             </Link>
           </div>
@@ -64,12 +81,12 @@ const Post = ({ className, data }) => {
             <div className="flex flex-col">
               <div className="flex justify-between w-full">
                 <div className="flex w-full items-center">
-                  <UserTooltip user={data.user}>
+                  <UserTooltip user={data?.postedBy}>
                     <Link
-                      to={`/${data.user.userName}`}
+                      to={`/${data?.postedBy?.userName}`}
                       className="text-sm font-medium hover:underline"
                     >
-                      {data.user.userName}
+                      {data?.postedBy?.userName}
                     </Link>
                   </UserTooltip>
                   <Dot />
@@ -77,15 +94,15 @@ const Post = ({ className, data }) => {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link
-                          to={`/${path.POSTS}/${data.id}`}
+                          to={`/${path.POSTS}/${data?._id}`}
                           className="opacity-50"
                         >
-                          <small>{formatRelativeDate(data.createdAt)}</small>
+                          <small>{formatRelativeDate(data?.createdAt)}</small>
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" align="start">
                         {formatDate(
-                          data.createdAt,
+                          data?.createdAt,
                           "EEEE, d MMMM, yyyy, HH:mm",
                           {
                             locale: vi,
@@ -96,29 +113,46 @@ const Post = ({ className, data }) => {
                   </TooltipProvider>
                 </div>
                 <DropPost
-                  postId={data.id}
+                  postId={data?._id}
                   setDeletePost={() => setShowDeletePost(true)}
+                  setEditPost={() => setShowEditPost(true)}
+                  isEdit={data?.postedBy._id === currentData._id}
+                  isCheckBookMark={currentData.bookmarkedPosts.includes(
+                    data?._id
+                  )}
                 />
               </div>
-              <Link to={`/${path.POSTS}/${data.id}`} className="text-sm">
-                {data.context}
+              <Link to={`/${path.POSTS}/${data?._id}`} className="text-sm">
+                {data?.context}
               </Link>
+
+              {/* Media previews */}
+              {data?.fileUrls?.length > 0 && (
+                <MediaPreviews
+                  attachments={data?.fileUrls}
+                  onOpenChange={() => setShowMedia(true)}
+                />
+              )}
             </div>
-            <MediaPreviews
-              attachments={data.imageUrl}
-              onOpenChange={() => setShowMedia(true)}
-            />
             <div className="flex gap-3 mt-1">
-              <div className="flex gap-1 items-center cursor-pointer rounded-full hover:bg-muted p-2">
-                <Heart className="size-5" />
-                <small>{formmatNumber(data.likes)}</small>
+              <div
+                className="flex gap-1 items-center cursor-pointer rounded-full hover:bg-muted p-2"
+                onClick={() => like_unlike(data._id)}
+              >
+                <Heart
+                  className={cn(
+                    "size-5",
+                    isLike && "fill-red-500 text-red-500"
+                  )}
+                />
+                <small>{formmatNumber(data?.likes?.length)}</small>
               </div>
               <div
                 className="flex gap-1 items-center cursor-pointer rounded-full hover:bg-muted p-2"
                 onClick={() => setShowCreateCommnet(true)}
               >
                 <MessageSquare className="size-5" />
-                <small>{formmatNumber(data.comments)}</small>
+                <small>{formmatNumber(data?.comments?.length)}</small>
               </div>
             </div>
           </div>

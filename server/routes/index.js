@@ -1,7 +1,7 @@
-const authRouter = require("./auth");
-const userRouter = require("./user");
-const insertRouter = require("./insert");
-const postRouter = require("./post");
+const authRouter = require("./auth.route");
+const userRouter = require("./user.route");
+const insertRouter = require("./insert.route");
+const postRouter = require("./post.route");
 const { errHandler, notFound } = require("../lib/errorHandel");
 
 module.exports = (app) => {

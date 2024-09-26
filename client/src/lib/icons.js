@@ -30,6 +30,8 @@ import {
   EyeOff,
   MoveLeft,
   MessageSquare,
+  ChevronDown,
+  BookmarkCheck,
 } from "lucide-react";
 
 const icons = {
@@ -64,6 +66,8 @@ const icons = {
   EyeOff,
   MoveLeft,
   MessageSquare,
+  ChevronDown,
+  BookmarkCheck,
 };
 
 export default icons;

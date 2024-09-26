@@ -2,7 +2,6 @@ import { LoadingScreen } from "@/components";
 import path from "@/lib/path";
 import Auth from "@/pages/auth/Auth";
 import Home from "@/pages/home/Home";
-// import useCurrentStore from "@/zustand/useCurrentStore";
 import { lazy, Suspense } from "react";
 import { Navigate, useRoutes } from "react-router-dom";
 
@@ -28,12 +27,9 @@ const User = Loadable(lazy(() => import("@/pages/home/User")));
 const Search = Loadable(lazy(() => import("@/pages/home/Search")));
 const PostDetail = Loadable(lazy(() => import("@/pages/home/PostDetail")));
 const Activity = Loadable(lazy(() => import("@/pages/home/Activity")));
+const Messager = Loadable(lazy(() => import("@/pages/home/Messager")));
 
 const Router = () => {
-  // const currentData = useCurrentStore((state) => state.currentData);
-
-  // console.log(currentData);
-
   return useRoutes([
     {
       path: path.AUTH,
@@ -54,10 +50,11 @@ const Router = () => {
       element: <Home />,
       children: [
         { path: "", element: <Posts /> },
-        { path: path.USER_NAME, element: <User /> },
+        { path: path.USER__NAME, element: <User /> },
         { path: path.SEARCH, element: <Search /> },
         { path: path.POSTS__ID, element: <PostDetail /> },
         { path: path.ACTIVITY, element: <Activity /> },
+        { path: path.MESSAGER, element: <Messager /> },
         { path: path.NOT_FOUND, element: <NotFound /> },
         {
           path: path.ALL,

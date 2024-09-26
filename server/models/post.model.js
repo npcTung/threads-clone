@@ -12,7 +12,12 @@ var postSchema = new mongoose.Schema(
       type: String,
       maxLength: [500, "Context no more than 500 characters."],
     },
-    filesUrl: [{ type: String }],
+    fileUrls: [
+      {
+        type: { type: String, enum: ["IMAGE", "VIDEO"] },
+        url: { type: String },
+      },
+    ],
     filenames: [{ type: String }],
     likes: [{ type: mongoose.Types.ObjectId, ref: "User" }],
     bookmarkedUsers: [{ type: mongoose.Types.ObjectId, ref: "User" }],
@@ -27,6 +32,9 @@ var postSchema = new mongoose.Schema(
           type: String,
           required: [true, "Context comment is required."],
         },
+        likes: [{ type: mongoose.Types.ObjectId, ref: "User" }],
+        createdAt: { type: Date, default: Date.now },
+        updatedAt: { type: Date, default: Date.now },
       },
     ],
   },

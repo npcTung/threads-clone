@@ -6,21 +6,11 @@ import {
   DialogHeader,
   DialogTitle,
   Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  Input,
+  FormInput,
+  FormSelect,
+  FormTextarea,
   Label,
   LoadingButton,
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-  Textarea,
 } from "..";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +19,8 @@ import Resizer from "react-image-file-resizer";
 import icons from "@/lib/icons";
 import avatarPlaceholder from "@/assets/avatar-placeholder.png";
 import CropImageDialog from "./CropImageDialog";
+import PropTypes from "prop-types";
+import useCurrentStore from "@/zustand/useCurrentStore";
 
 const { Camera } = icons;
 
@@ -55,6 +47,8 @@ export default DialogEditUser;
 
 const EditUserProfile = ({ userData, onOpenChange }) => {
   const [croppedAvatar, setCroppedAvatar] = useState(null);
+  const { updateUserProfile, isEditLoading } = useCurrentStore();
+
   const form = useForm({
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {
@@ -66,8 +60,15 @@ const EditUserProfile = ({ userData, onOpenChange }) => {
   });
 
   const onSubmit = async (data) => {
-    console.log(data);
-    onOpenChange();
+    const payload = {
+      ...data,
+      avatar: croppedAvatar
+        ? new File([croppedAvatar], `avatar_${userData._id}.jpg`)
+        : null,
+    };
+
+    await updateUserProfile(payload);
+    if (!isEditLoading) onOpenChange();
   };
 
   return (
@@ -85,91 +86,56 @@ const EditUserProfile = ({ userData, onOpenChange }) => {
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          <FormField
-            control={form.control}
+          <FormInput
+            form={form}
+            lable="Tên"
             name="displayName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tên</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Tên..."
-                    {...field}
-                    className={"bg-muted w-full"}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
+            placeholder="Tên..."
+            className="bg-muted"
           />
-          <FormField
-            control={form.control}
+          <FormInput
+            form={form}
+            lable="Link"
             name="link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Link</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Link..."
-                    {...field}
-                    className={"bg-muted"}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
+            placeholder="Link..."
+            className="bg-muted"
           />
-          <FormField
-            control={form.control}
+          <FormSelect
+            form={form}
+            lable="Giới tính"
             name="gender"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Giới tính</FormLabel>
-                <FormControl>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    name={field.name}
-                  >
-                    <SelectTrigger className="w-full bg-muted">
-                      <SelectValue placeholder="<-- Chọn giới tính -->" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Giới tính</SelectLabel>
-                        {optionGenders.map((el, idx) => (
-                          <SelectItem key={idx} value={el.value}>
-                            {el.title}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-              </FormItem>
-            )}
+            placeholder="<-- Chọn giới tính -->"
+            options={optionGenders}
           />
-          <FormField
-            control={form.control}
+          <FormTextarea
+            form={form}
+            lable="Tiểu sử"
             name="bio"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tiểu sử</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Tiểu sử..."
-                    {...field}
-                    className={"bg-muted resize-none"}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
+            placeholder="Tiểu sử..."
+            className="bg-muted min-h-[100px] max-h-[200px]"
           />
-          <LoadingButton type="sumbit" className={"w-full"}>
+          <LoadingButton
+            loading={isEditLoading}
+            type="sumbit"
+            className={"w-full"}
+          >
             Xong
           </LoadingButton>
         </form>
       </Form>
     </div>
   );
+};
+
+EditUserProfile.prototype = {
+  userData: PropTypes.shape({
+    displayName: PropTypes.string,
+    bio: PropTypes.string,
+    gender: PropTypes.string,
+    link: PropTypes.string,
+    avatarUrl: PropTypes.string,
+  }),
+  onOpenChange: PropTypes.func.isRequired,
 };
 
 const AvatarInput = ({ src, onImageCropped }) => {
@@ -230,4 +196,9 @@ const AvatarInput = ({ src, onImageCropped }) => {
       )}
     </>
   );
+};
+
+AvatarInput.prototype = {
+  src: PropTypes.string.isRequired,
+  onImageCropped: PropTypes.func.isRequired,
 };

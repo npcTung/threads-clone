@@ -5,7 +5,7 @@ const path = {
   // SEARCH
   SEARCH: "search",
   // USER_NAME
-  USER_NAME: ":user_name",
+  USER__NAME: "/:user_name",
   // SEARCH
   SEARCH: "search",
   // ACTIVITY
@@ -19,7 +19,7 @@ const path = {
   REGISTER: "register",
   FORGOT_PASSWORD: "forgot_password",
   // MESSAGER
-  MESSAGER: "message",
+  MESSAGER: "messager",
 };
 
 export default path;

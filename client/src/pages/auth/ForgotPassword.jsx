@@ -8,14 +8,11 @@ import {
   DialogHeader,
   DialogTitle,
   Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
+  FormInput,
+  FormPassword,
   Input,
   Label,
   LoadingButton,
-  PasswordInput,
 } from "@/components";
 import icons from "@/lib/icons";
 import path from "@/lib/path";
@@ -24,6 +21,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
+import * as apis from "@/apis";
+import { toast } from "sonner";
+import useCurrentStore from "@/zustand/useCurrentStore";
 
 const { AlertCircle, MoveLeft } = icons;
 
@@ -31,14 +31,28 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const setEmailSendOtp = useCurrentStore((state) => state.setEmail);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!email) {
       setError("Vui lòng nhập email");
       return;
     }
-    console.log(email);
-    setShowResetPassword(true);
+    try {
+      setIsLoading(true);
+      const response = await apis.forgotPassword(email);
+      if (response.success) {
+        toast.success(response.mes);
+        setEmailSendOtp(email);
+        setError("");
+        setShowResetPassword(true);
+      }
+    } catch (error) {
+      setEmail(error.response.data.mes);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -80,7 +94,9 @@ const ForgotPassword = () => {
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-              <LoadingButton onClick={handleSubmit}>Gửi</LoadingButton>
+              <LoadingButton loading={isLoading} onClick={handleSubmit}>
+                Gửi
+              </LoadingButton>
             </div>
           </div>
         </div>
@@ -92,8 +108,9 @@ const ForgotPassword = () => {
 export default ForgotPassword;
 
 const DialogRestPassword = ({ open, onOpenChange }) => {
-  const [error, setError] = useState("");
   const navigte = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const { setEmail, email } = useCurrentStore();
 
   const form = useForm({
     resolver: zodResolver(restPasswordSchema),
@@ -104,10 +121,23 @@ const DialogRestPassword = ({ open, onOpenChange }) => {
     },
   });
 
-  const onSubmit = (data) => {
-    console.log(data);
-    onOpenChange();
-    navigte(`/${path.AUTH}/${path.LOGIN}`);
+  const onSubmit = async (data) => {
+    const { confirmPassword, ...payload } = data;
+
+    try {
+      setIsLoading(true);
+      const response = await apis.resetPassword(payload, email);
+      if (response.success) {
+        toast.success(response.mes);
+        setEmail(null);
+        onOpenChange();
+        navigte(`/${path.AUTH}/${path.LOGIN}`);
+      }
+    } catch (error) {
+      toast.error(error.response.data.mes);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -120,54 +150,30 @@ const DialogRestPassword = ({ open, onOpenChange }) => {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          {error && (
-            <Alert variant={"destructive"}>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            <FormField
-              control={form.control}
+            <FormInput
+              form={form}
+              lable="Nhập Otp"
               name="otp"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>OTP</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nhập otp..." {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
+              placeholder="Nhập otp..."
             />
-            <FormField
-              control={form.control}
+            <FormPassword
+              form={form}
+              lable="Mật khẩu"
               name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mật khẩu</FormLabel>
-                  <FormControl>
-                    <PasswordInput placeholder="Nhập mật khẩu..." {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
+              placeholder="Mật khẩu..."
             />
-            <FormField
-              control={form.control}
+            <FormPassword
+              form={form}
+              lable="Nhập lại mật khẩu"
               name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nhập lại mật khẩu</FormLabel>
-                  <FormControl>
-                    <PasswordInput
-                      placeholder="Nhập lại mật khẩu..."
-                      {...field}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
+              placeholder="Nhập lại mật khẩu..."
             />
-            <LoadingButton type="submit" className={"w-full"}>
+            <LoadingButton
+              loading={isLoading}
+              type="submit"
+              className={"w-full"}
+            >
               Đặt lại mật khẩu
             </LoadingButton>
           </form>

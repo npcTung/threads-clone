@@ -1,3 +1,4 @@
+import PropTypes from "prop-types";
 import { createContext, useContext, useEffect, useState } from "react";
 
 const ThemeProviderContext = createContext({
@@ -43,6 +44,13 @@ export const ThemeProvider = ({
       {children}
     </ThemeProviderContext.Provider>
   );
+};
+
+ThemeProvider.prototype = {
+  children: PropTypes.node,
+  defaultTheme: PropTypes.string,
+  storageKey: PropTypes.string,
+  props: PropTypes.node,
 };
 
 export const useTheme = () => {

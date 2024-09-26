@@ -14,6 +14,7 @@ const DialogMedias = ({ attachments, open, onOpenChange }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
+        onClick={() => onOpenChange(false)}
         className={
           "max-w-none size-full flex items-center justify-center bg-card/30 backdrop-blur-lg"
         }

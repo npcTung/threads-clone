@@ -17,3 +17,7 @@ VITE_API_URI=...
 // google id
 VITE_GOOGLE_CLIENT_ID=...
 ```
+
+# Setup logging to google
+
+- [@google cloud console](https://cloud.google.com/cloud-console) to get client id

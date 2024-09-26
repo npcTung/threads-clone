@@ -9,7 +9,7 @@ const Navbar = () => {
   const { theme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-10 bg-card shadow-md">
+    <header className="sticky top-0 z-10 bg-muted shadow-md">
       <div className="mx-auto max-sm:flex max-w-7xl items-center hidden justify-center gap-5 px-5 py-3">
         <div className="flex justify-center w-full">
           <Link to={path.HOME}>

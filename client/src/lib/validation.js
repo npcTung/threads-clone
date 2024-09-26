@@ -7,18 +7,32 @@ const requiredString = z
 
 export const updateUserProfileSchema = z.object({
   displayName: requiredString,
-  bio: z.string().max(1000, "Phải có tối đa 1000 ký tự."),
-  gender: requiredString,
-  link: requiredString,
+  bio: z.string().max(200, "Phải có tối đa 200 ký tự."),
+  gender: z.string(),
+  link: z.string(),
 });
 
 export const loginSchema = z.object({
   userName: requiredString.regex(
-    /^[a-zA-Z0-9_-]+$/,
+    /^[a-zA-Z0-9_]+$/,
     "Chỉ cho phép chữ cái, số và _."
   ),
   password: requiredString.min(8, "Phải có ít nhất 8 ký tự."),
 });
+
+export const setPassword = z
+  .object({
+    userName: requiredString.regex(
+      /^[a-zA-Z0-9_-]+$/,
+      "Chỉ cho phép chữ cái, số và _."
+    ),
+    password: requiredString.max(8, "Phải có ít nhất 8 ký tự."),
+    confirmPassword: requiredString.max(8, "Phải có ít nhất 8 ký tự."),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Mật khẩu phải trùng khớp.",
+  });
 
 export const signUpSchema = z
   .object({

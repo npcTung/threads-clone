@@ -1,4 +1,3 @@
-import { useToast } from "@/hooks/use-toast";
 import path from "@/lib/path";
 import React from "react";
 import {
@@ -9,22 +8,24 @@ import {
   DropdownMenuTrigger,
 } from "../ui";
 import icons from "@/lib/icons";
+import { toast } from "sonner";
+import useCurrentStore from "@/zustand/useCurrentStore";
 
-const { Ellipsis, Bookmark, Link2, SquarePen, Trash2 } = icons;
+const { Ellipsis, Bookmark, Link2, SquarePen, Trash2, BookmarkCheck } = icons;
 
-const DropPost = ({ postId, setDeletePost }) => {
-  const { toast } = useToast();
+const DropPost = ({
+  postId,
+  setDeletePost,
+  isEdit,
+  setEditPost,
+  isCheckBookMark,
+}) => {
+  const { bookmark_unbookmark } = useCurrentStore();
 
   const copyUrl = () => {
     const url = `${window.location.origin}/${path.POSTS}/${postId}`;
     navigator.clipboard.writeText(url).then(() => {
-      toast({
-        variant: "default",
-        title: "Successfully copied.",
-        description: "Post copied url.",
-        duration: 3000,
-        className: "bg-green-600 text-white border-green-600",
-      });
+      toast.success("Đã sao chép url.");
     });
   };
 
@@ -34,9 +35,16 @@ const DropPost = ({ postId, setDeletePost }) => {
         <Ellipsis className="cursor-pointer size-7 p-1 rounded-full hover:bg-muted" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="rigth" align="start">
-        <DropdownMenuItem className="flex items-center justify-between gap-5 cursor-pointer">
-          <span>Lưu</span>
-          <Bookmark className="size-5" />
+        <DropdownMenuItem
+          className="flex items-center justify-between gap-5 cursor-pointer"
+          onClick={() => bookmark_unbookmark(postId)}
+        >
+          <span>{isCheckBookMark ? "Đã lưu" : "Lưu"}</span>
+          {isCheckBookMark ? (
+            <BookmarkCheck className="size-5" />
+          ) : (
+            <Bookmark className="size-5" />
+          )}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -46,19 +54,26 @@ const DropPost = ({ postId, setDeletePost }) => {
           <span>Sao chép liên kết</span>
           <Link2 className="size-5" />
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="flex items-center justify-between gap-5 cursor-pointer">
-          <span>Sửa</span>
-          <SquarePen className="size-5" />
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="flex items-center justify-between gap-5 cursor-pointer text-red-600"
-          onClick={setDeletePost}
-        >
-          <span>Xóa</span>
-          <Trash2 className="size-5" />
-        </DropdownMenuItem>
+        {isEdit && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="flex items-center justify-between gap-5 cursor-pointer"
+              onClick={setEditPost}
+            >
+              <span>Sửa</span>
+              <SquarePen className="size-5" />
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="flex items-center justify-between gap-5 cursor-pointer text-red-600"
+              onClick={setDeletePost}
+            >
+              <span>Xóa</span>
+              <Trash2 className="size-5" />
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -16,12 +16,33 @@ import { useTheme } from ".";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 import path from "@/lib/path";
+import * as apis from "@/apis";
+import { toast } from "sonner";
+import useCurrentStore from "@/zustand/useCurrentStore";
+import usePostsStore from "@/zustand/usePostsStore";
+import PropTypes from "prop-types";
 
 const { AlignLeft, Sun, Moon, LogOutIcon, UserIcon, Monitor, Check } = icons;
 
 const DropMenu = ({ className }) => {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const { currentData, clearCurrentData } = useCurrentStore();
+  const { clearPostData } = usePostsStore();
+
+  const handleLogout = async () => {
+    try {
+      const response = await apis.logout();
+      if (response.success) {
+        clearCurrentData();
+        clearPostData();
+        navigate(`/${path.AUTH}/${path.LOGIN}`);
+      }
+    } catch (error) {
+      toast.error(error.response.data.mes);
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -32,17 +53,17 @@ const DropMenu = ({ className }) => {
       <DropdownMenuContent side="bottom" align="start">
         <DropdownMenuLabel className="cursor-default">{`Looged in as @Tungdeptrai`}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <Link to={`/tungdeptrai`}>
+        <Link to={`/${currentData?.userName}`}>
           <DropdownMenuItem className="cursor-pointer">
             <UserIcon className="mr-2 size-4" />
-            Profile
+            Trang cá nhân
           </DropdownMenuItem>
         </Link>
         <DropdownMenuSeparator />
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="cursor-pointer">
             <Monitor className="mr-2 size-4" />
-            Theme
+            Chủ đề
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
             <DropdownMenuSubContent>
@@ -52,7 +73,7 @@ const DropMenu = ({ className }) => {
               >
                 <div className="flex items-center">
                   <Sun className="mr-2 size-4" />
-                  Ligth
+                  Sáng
                 </div>
                 {theme === "ligth" && <Check className="ms-2 size-4" />}
               </DropdownMenuItem>
@@ -63,7 +84,7 @@ const DropMenu = ({ className }) => {
               >
                 <div className="flex items-center">
                   <Moon className="mr-2 size-4" />
-                  Dark
+                  Tối
                 </div>
                 {theme === "dark" && <Check className="ms-2 size-4" />}
               </DropdownMenuItem>
@@ -71,12 +92,9 @@ const DropMenu = ({ className }) => {
           </DropdownMenuPortal>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          className="cursor-pointer"
-          onClick={() => navigate(`/${path.AUTH}/${path.LOGIN}`)}
-        >
+        <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
           <LogOutIcon className="mr-2 size-4" />
-          Logout
+          Đăng xuất
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -84,3 +102,7 @@ const DropMenu = ({ className }) => {
 };
 
 export default DropMenu;
+
+DropMenu.prototype = {
+  className: PropTypes.string,
+};

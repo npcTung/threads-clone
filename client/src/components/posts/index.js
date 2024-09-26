@@ -6,3 +6,4 @@ export { default as MediaPreviews } from "./MediaPreviews";
 export { default as DropPost } from "./DropPost";
 export { default as DialogCreatePost } from "./DialogCreatePost";
 export { default as EditPost } from "./EditPost";
+export { default as DialogEditPost } from "./DialogEditPost";

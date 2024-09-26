@@ -1,12 +1,21 @@
 import { useTheme } from "@/components";
 import icons from "@/lib/icons";
-import React from "react";
-import { Outlet } from "react-router-dom";
+import path from "@/lib/path";
+import useCurrentStore from "@/zustand/useCurrentStore";
+import React, { useEffect } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 
 const { Sun, Moon } = icons;
 
 const Auth = () => {
   const { theme, setTheme } = useTheme();
+  const { isLoggedIn } = useCurrentStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoggedIn) navigate(path.HOME);
+  }, [isLoggedIn]);
+
   return (
     <div className="w-full h-screen relative">
       <div
