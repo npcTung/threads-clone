@@ -72,4 +72,9 @@ export const endpoints = {
     delete_comment: "post/delete-comment/",
     like_unlike_comment: "post/like-unlike-comment/",
   },
+  activities: {
+    getActivities: "activity",
+    unreadCount: "activity/unread-count",
+    markAsRead: "activity/mark-as-read",
+  },
 };

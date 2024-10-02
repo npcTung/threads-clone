@@ -1,5 +1,6 @@
 const Post = require("../models/post.model");
 const User = require("../models/user.model");
+const Activity = require("../models/activity.model");
 const asyncHandler = require("express-async-handler");
 const cloudinary = require("cloudinary").v2;
 
@@ -24,13 +25,25 @@ const createPost = asyncHandler(async (req, res) => {
     throw new Error(`Nội dung phải ít hơn ${maxlength} ký tự.`);
 
   const newPost = await Post.create({ postedBy, context });
+  let getPost;
+  if (newPost)
+    getPost = await Post.findById(newPost._id).populate([
+      {
+        path: "postedBy",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+      {
+        path: "comments.userId",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+    ]);
 
   return res.status(newPost ? 200 : 500).json({
     success: newPost ? true : false,
     mes: newPost
       ? "Bài viết đã được tạo thành công."
       : "Không tạo được bài viết.",
-    data: newPost ? newPost : undefined,
+    data: newPost ? getPost : undefined,
   });
 });
 
@@ -202,9 +215,16 @@ const likeUnlikePost = asyncHandler(async (req, res) => {
           "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
       },
     ]);
-    if (unlike)
+    if (unlike) {
       await User.findByIdAndUpdate(id, { $pull: { likedPosts: postId } });
-    res.status(unlike ? 200 : 404).json({
+      await Activity.deleteMany({
+        isSuerId: id,
+        recipientId: unlike.postedBy._id,
+        postId,
+        type: "Like",
+      });
+    }
+    return res.status(unlike ? 200 : 404).json({
       success: !!unlike,
       mes: unlike
         ? "Hủy like bài đăng thành công."
@@ -215,8 +235,15 @@ const likeUnlikePost = asyncHandler(async (req, res) => {
     // like
     post.likes.push(id);
     const like = await post.save({ new: true, validateModifiedOnly: true });
-    if (like)
+    if (like) {
       await User.findByIdAndUpdate(id, { $push: { likedPosts: postId } });
+      await Activity.create({
+        isSuerId: id,
+        recipientId: like.postedBy._id,
+        postId,
+        type: "Like",
+      });
+    }
     return res.status(like ? 200 : 404).json({
       success: !!like,
       mes: like ? "Like bài đăng thành công." : "Like bài đăng thất bại.",
@@ -256,6 +283,16 @@ const createCommentPost = asyncHandler(async (req, res) => {
         "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
     },
   ]);
+
+  if (createdCommnet && post.postedBy.toString() !== id)
+    await Activity.create({
+      isSuerId: id,
+      recipientId: createdCommnet.postedBy._id,
+      commentId:
+        createdCommnet.comments[createdCommnet.comments.length - 1]._id,
+      postId,
+      type: "Comment",
+    });
 
   res.status(200).json({
     success: true,
@@ -354,6 +391,15 @@ const liekUnlikeCommentPost = asyncHandler(async (req, res) => {
       },
     ]);
 
+    if (unlikeComment)
+      await Activity.deleteMany({
+        isSuerId: id,
+        recipientId: unlikeComment.postedBy._id,
+        commentId,
+        postId,
+        type: "Like_Comment",
+      });
+
     return res.status(unlikeComment ? 200 : 404).json({
       success: !!unlikeComment,
       mes: unlikeComment
@@ -370,6 +416,15 @@ const liekUnlikeCommentPost = asyncHandler(async (req, res) => {
       new: true,
       validateModifiedOnly: true,
     });
+
+    if (likeComment)
+      await Activity.create({
+        isSuerId: id,
+        recipientId: likeComment.postedBy._id,
+        commentId,
+        postId,
+        type: "Like_Comment",
+      });
 
     return res.status(likeComment ? 200 : 404).json({
       success: !!likeComment,
@@ -394,7 +449,10 @@ const deleteCommentPost = asyncHandler(async (req, res) => {
       .status(404)
       .json({ success: false, mes: "Bài viết không tìm thấy." });
 
-  if (post.postedBy._id.toString() !== req.user.id)
+  const userComment = post.comments
+    .map((comment) => comment.userId.toString())
+    .includes(id);
+  if (!userComment)
     return res.status(401).json({
       success: false,
       mes: "Không được phép xóa bài bình luận.",
@@ -421,6 +479,23 @@ const deleteCommentPost = asyncHandler(async (req, res) => {
     },
   ]);
 
+  if (delete_comment) {
+    await Activity.deleteMany({
+      isSuerId: id,
+      recipientId: delete_comment.postedBy._id,
+      commentId,
+      postId,
+      type: "Like_Comment",
+    });
+    await Activity.deleteMany({
+      isSuerId: id,
+      recipientId: delete_comment.postedBy._id,
+      commentId,
+      postId,
+      type: "Comment",
+    });
+  }
+
   return res.status(200).json({
     success: true,
     mes: "Bình luận đã được xóa thành công.",
@@ -431,6 +506,7 @@ const deleteCommentPost = asyncHandler(async (req, res) => {
 const getFeedPosts = asyncHandler(async (req, res) => {
   const { id } = req.user;
   const queries = { ...req.query };
+  const pageSize = 10;
 
   const user = await User.findById(id);
   if (!user)
@@ -438,6 +514,7 @@ const getFeedPosts = asyncHandler(async (req, res) => {
 
   const objectQueries = {};
   objectQueries.postedBy = { $nin: user.blockedUsers };
+  if (queries.cursor) objectQueries._id = { $lt: queries.cursor };
   if (queries.follower) objectQueries.postedBy = { $in: user.following };
   else if (queries.likes) objectQueries._id = { $in: user.likedPosts };
   else if (queries.bookmarks) objectQueries._id = { $in: user.bookmarkedPosts };
@@ -451,14 +528,17 @@ const getFeedPosts = asyncHandler(async (req, res) => {
       },
     ])
     .sort({ createdAt: -1 });
+  // .limit(pageSize + 1);
 
-  const counts = await Post.find(objectQueries).countDocuments();
+  const nextCursor = posts.length > pageSize ? posts[pageSize]._id : null;
+  const count = await Post.find(objectQueries).countDocuments();
 
   res.status(posts.length ? 200 : 404).json({
     success: posts.length ? true : false,
     mes: !posts.length ? "Bài viết không tìm thấy." : undefined,
-    counts: posts.length ? counts : undefined,
     data: posts.length ? posts : undefined,
+    count,
+    nextCursor,
   });
 });
 

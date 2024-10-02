@@ -291,7 +291,10 @@ const DialogSendEmail = ({ open, onOpenChange, setShowFinalRegister }) => {
       <DialogContent className="space-y-3">
         <DialogHeader>
           <DialogTitle>Gửi email xác minh tài khoản</DialogTitle>
-          <DialogDescription />
+          <DialogDescription>
+            Tài khoản này chưa được xác minh vui lòng xác minh trước khi đăng
+            nhập
+          </DialogDescription>
         </DialogHeader>
         <Input
           type={"email"}

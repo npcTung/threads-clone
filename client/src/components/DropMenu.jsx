@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import useCurrentStore from "@/zustand/useCurrentStore";
 import usePostsStore from "@/zustand/usePostsStore";
 import PropTypes from "prop-types";
+import useActivitiesStore from "@/zustand/useActivitiesStore";
 
 const { AlignLeft, Sun, Moon, LogOutIcon, UserIcon, Monitor, Check } = icons;
 
@@ -29,6 +30,7 @@ const DropMenu = ({ className }) => {
   const navigate = useNavigate();
   const { currentData, clearCurrentData } = useCurrentStore();
   const { clearPostData } = usePostsStore();
+  const { clearActivities } = useActivitiesStore();
 
   const handleLogout = async () => {
     try {
@@ -36,6 +38,7 @@ const DropMenu = ({ className }) => {
       if (response.success) {
         clearCurrentData();
         clearPostData();
+        clearActivities();
         navigate(`/${path.AUTH}/${path.LOGIN}`);
       }
     } catch (error) {

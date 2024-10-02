@@ -39,3 +39,6 @@ export const convertFile = (file) => {
     reader.onerror = (error) => reject(error);
   });
 };
+
+export const setTitle = (title = "Trang chủ") =>
+  (document.title = `${title} • Threads`);

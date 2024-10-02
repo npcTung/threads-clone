@@ -32,6 +32,7 @@ import {
   MessageSquare,
   ChevronDown,
   BookmarkCheck,
+  User2,
 } from "lucide-react";
 
 const icons = {
@@ -68,6 +69,7 @@ const icons = {
   MessageSquare,
   ChevronDown,
   BookmarkCheck,
+  User2,
 };
 
 export default icons;

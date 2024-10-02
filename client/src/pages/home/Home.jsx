@@ -19,6 +19,7 @@ import darklogo from "@/assets/darklogo.svg";
 import icons from "@/lib/icons";
 import useCurrentStore from "@/zustand/useCurrentStore";
 import usePostsStore from "@/zustand/usePostsStore";
+import { setTitle } from "@/lib/utils";
 
 const { Plus, ChevronDown, Check } = icons;
 
@@ -103,8 +104,12 @@ const DropPosts = ({ userName }) => {
     else if (window.location.pathname === "/messager") setSortPost("Tin nhắn");
     else if (window.location.pathname === "/activity") setSortPost("Hoạt động");
     else if (window.location.pathname === "/404") setSortPost("404");
+    else if (window.location.pathname.split("/")[1] === "post")
+      setSortPost("Threads");
     else setSortPost(user_name === userName ? "Trang cá nhân" : user_name);
   }, [window.location.pathname, user_name]);
+
+  setTitle(sortPost);
 
   return (
     <div className="sticky top-0 hidden flex-none bg-muted sm:block p-5 md:flex md:flex-col items-center justify-between">

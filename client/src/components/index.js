@@ -25,3 +25,4 @@ export { default as LoadingButton } from "./LoadingButton";
 export { default as LoadingScreen } from "./LoadingScreen";
 export { default as Messager } from "./Messager";
 export { default as Activity } from "./Activity";
+export { default as InfiniteScrollContainer } from "./InfiniteScrollContainer";

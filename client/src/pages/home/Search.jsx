@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import * as apis from "@/apis";
-import { toast } from "sonner";
 import useDebounce from "@/hooks/useDebounce";
 
 const { SearchIcon } = icons;
@@ -19,7 +18,7 @@ const { SearchIcon } = icons;
 const Search = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState([]);
-  const [queries, setQueries] = useState({ q: "" });
+  const [queries, setQueries] = useState({ q: null });
   const queriesDebounce = useDebounce(queries, 800);
 
   const fetchGetUsers = async (queries) => {
@@ -28,15 +27,15 @@ const Search = () => {
       const response = await apis.getUsers(queries);
       if (response.success) setUsers(response.data);
     } catch (error) {
+      setUsers([]);
       console.error(error.response.data.mes);
-      setQueries([]);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchGetUsers(queriesDebounce);
+    if (queriesDebounce) fetchGetUsers(queriesDebounce);
   }, [queriesDebounce]);
 
   return (
@@ -67,28 +66,15 @@ export default Search;
 const SearchField = ({ setQueries }) => {
   const { theme } = useTheme();
 
-  const handleSumbit = (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const q = form.q.value.trim();
-    if (!q) return;
-  };
-
   return (
-    <form onSubmit={handleSumbit}>
-      <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground" />
-        <Input
-          name="q"
-          onChange={(e) => setQueries({ q: e.target.value })}
-          placeholder="Search"
-          className={cn(
-            "ps-10",
-            theme === "dark" ? "bg-background" : "bg-muted"
-          )}
-        />
-      </div>
-    </form>
+    <div className="relative">
+      <SearchIcon className="absolute left-3 top-1/2 size-5 -translate-y-1/2 transform text-muted-foreground" />
+      <Input
+        placeholder="Search"
+        onChange={(e) => setQueries({ q: e.target.value.trim() || null })}
+        className={cn("ps-10", theme === "dark" ? "bg-background" : "bg-muted")}
+      />
+    </div>
   );
 };
 

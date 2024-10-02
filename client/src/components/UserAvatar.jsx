@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import avatarPlaceholder from "@/assets/avatar-placeholder.png";
 import { cn } from "@/lib/utils";
 import PropTypes from "prop-types";
@@ -10,11 +10,7 @@ const UserAvatar = ({
   className,
   handelOnclick,
 }) => {
-  const [imageUrl, setImageUrl] = useState();
-
-  useEffect(() => {
-    setImageUrl(avatarUrl || avatarPlaceholder);
-  }, [avatarUrl]);
+  const [imageUrl, setImageUrl] = useState(avatarUrl || avatarPlaceholder);
 
   return (
     <img
@@ -22,7 +18,7 @@ const UserAvatar = ({
       alt={displayName}
       width={size ?? 48}
       height={size ?? 48}
-      onError={() => setImageUrl(imageUrl)}
+      onError={() => setImageUrl(avatarPlaceholder)}
       className={cn(
         "aspect-square h-fit flex-none rounded-full bg-secondary object-cover",
         className

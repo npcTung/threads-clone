@@ -347,7 +347,7 @@ const DialogFollowerFollowing = ({ open, onOpenChange, data }) => {
         <DialogTitle />
         <DialogDescription />
       </DialogHeader>
-      <DialogContent className="max-h-[70%] overflow-y-auto">
+      <DialogContent className="max-h-[70%] overflow-hidden hover:overflow-y-auto scrollbar-thin scrollbar-thumb-primary scrollbar-track-background">
         <Tabs defaultValue="follower">
           <TabsList className={"w-full flex gap-5"}>
             <TabsTrigger value="follower" className="flex-1">

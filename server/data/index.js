@@ -30,4 +30,25 @@ const dataUsers = [...Array(20)].map(() => ({
   verified: faker.datatype.boolean(),
 }));
 
-module.exports = { dataUsers };
+const context = () => {
+  let words = "";
+
+  while (words.length < 500) {
+    const newWords = faker.word.words();
+    if (words.length + newWords.length + 1 > 500) break;
+
+    words += (words ? " " : "") + newWords;
+
+    return words;
+  }
+};
+
+const dataPosts = [...Array(20)].map(() => ({
+  context: context(),
+  fileUrls: [...Array(Math.floor(Math.random() * (5 - 1 + 1) + 1))].map(() => ({
+    type: "IMAGE",
+    url: faker.image.urlPicsumPhotos(),
+  })),
+}));
+
+module.exports = { dataUsers, dataPosts };

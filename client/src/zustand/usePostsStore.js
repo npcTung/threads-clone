@@ -5,8 +5,9 @@ import { toast } from "sonner";
 const usePostsStore = create((set, get) => ({
   userPosts: [],
   postFeeds: [],
+  nextCursor: null,
   post: null,
-  sortPost: "Dành cho bạn",
+  sortPost: "Threads",
   isLoading: false,
   isCreateLoading: false,
   setSortPost: (sortPost) => set({ sortPost }),
@@ -14,6 +15,7 @@ const usePostsStore = create((set, get) => ({
   setIsLoading: (isLoading) => set({ isLoading }),
   setUserPosts: (userPosts) => set({ userPosts }),
   setPostFeeds: (postFeeds) => set({ postFeeds }),
+  setNextCursor: (nextCursor) => set({ nextCursor }),
   setPost: (post) => set({ post }),
   clearPostData: () =>
     set({
@@ -22,7 +24,8 @@ const usePostsStore = create((set, get) => ({
       post: null,
       isLoading: false,
       isCreateLoading: false,
-      sortPost: "Dành cho bạn",
+      sortPost: "Threads",
+      nextCursor: null,
     }),
   getUserPosts: async (userName) => {
     try {
@@ -36,10 +39,11 @@ const usePostsStore = create((set, get) => ({
       set({ isLoading: false });
     }
   },
-  getFeedPosts: async () => {
+  getFeedPosts: async (cursor) => {
     try {
       set({ isLoading: true });
       const objectQueries = {};
+      // if (cursor) objectQueries.cursor = cursor;
       if (get().sortPost === "Đang theo dõi") objectQueries.follower = true;
       else if (get().sortPost === "Đã thích") objectQueries.likes = true;
       else if (get().sortPost === "Đã lưu") objectQueries.bookmarks = true;
@@ -50,7 +54,10 @@ const usePostsStore = create((set, get) => ({
       }
 
       const postFeeds = await apis.getFeedPosts(objectQueries);
-      if (postFeeds.success) set({ postFeeds: postFeeds.data });
+      if (postFeeds.success) {
+        set({ postFeeds: postFeeds.data });
+        set({ nextCursor: postFeeds.nextCursor });
+      }
     } catch (error) {
       console.error(error.response.data.mes);
       set({ postFeeds: [] });
@@ -76,18 +83,11 @@ const usePostsStore = create((set, get) => ({
       const { files, ...payload } = data;
       const newPostItems = [...get().postFeeds];
       const newUserItems = [...get().userPosts];
-      let newPost = get().post;
 
       const createPost = await apis.createPost(payload);
       if (createPost.success) {
-        if (newPostItems.length)
-          set((state) => ({
-            postFeeds: [createPost.data, ...state.postFeeds],
-          }));
-        if (newUserItems.length)
-          set((state) => ({
-            userPosts: [createPost.data, ...state.userPosts],
-          }));
+        if (newPostItems.length) newPostItems.unshift(createPost.data);
+        else if (newUserItems.length) newUserItems.unshift(createPost.data);
         toast.success(createPost.mes);
       }
       if (files.length) {
@@ -103,19 +103,17 @@ const usePostsStore = create((set, get) => ({
               if (post._id === uploadFiles.data._id)
                 newPostItems[idx] = uploadFiles.data;
             });
-          if (newUserItems.length)
+          else if (newUserItems.length)
             newUserItems.forEach((post, idx) => {
               if (post._id === uploadFiles.data._id)
                 newUserItems[idx] = uploadFiles.data;
             });
-          if (newPost) newPost = uploadFiles.data;
 
-          set({ postFeeds: newPostItems });
-          set({ postFeeds: newUserItems });
-          set({ post: newPost });
           toast.success(uploadFiles.mes);
         }
       }
+      set({ postFeeds: newPostItems });
+      set({ userPosts: newUserItems });
     } catch (error) {
       console.error(error.response.data.mes);
     } finally {

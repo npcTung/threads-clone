@@ -1,4 +1,5 @@
 const User = require("../models/user.model");
+const Activity = require("../models/activity.model");
 const filterObj = require("../lib/filterObj");
 const asyncHandler = require("express-async-handler");
 const cloudinary = require("cloudinary").v2;
@@ -56,7 +57,6 @@ const getUsers = asyncHandler(async (req, res) => {
     formatedQueries["$or"] = [
       { userName: { $regex: req.query.q, $options: "i" } },
       { displayName: { $regex: req.query.q, $options: "i" } },
-      { email: { $regex: req.query.q, $options: "i" } },
     ];
   }
   let queryCommand = User.find(formatedQueries)
@@ -139,7 +139,16 @@ const updateUser = asyncHandler(async (req, res) => {
   const updateUser = await User.findByIdAndUpdate(id, filteredBody, {
     new: true,
     validateModifiedOnly: true,
-  });
+  }).populate([
+    {
+      path: "following",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+    {
+      path: "follower",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+  ]);
 
   return res.status(updateUser ? 200 : 400).json({
     success: !!updateUser,
@@ -205,6 +214,11 @@ const followUnfollow = asyncHandler(async (req, res) => {
       { $pull: { following: uid } },
       { new: true, validateModifiedOnly: true }
     );
+    await Activity.deleteMany({
+      isSuerId: currentUser._id,
+      recipientId: userToModify._id,
+      type: "Follow",
+    });
     return res.status(200).json({
       success: true,
       mes: "Người dùng đã bỏ theo dõi thành công.",
@@ -227,6 +241,11 @@ const followUnfollow = asyncHandler(async (req, res) => {
         select: "-verified -password -role -otp -otp_expiry_time",
       },
     ]);
+    await Activity.create({
+      isSuerId: currentUser._id,
+      recipientId: userToModify._id,
+      type: "Follow",
+    });
     return res.status(200).json({
       success: true,
       mes: "Người dùng đã theo dõi thành công.",

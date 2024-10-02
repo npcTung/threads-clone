@@ -17,7 +17,7 @@ export const loginSchema = z.object({
     /^[a-zA-Z0-9_]+$/,
     "Chỉ cho phép chữ cái, số và _."
   ),
-  password: requiredString.min(8, "Phải có ít nhất 8 ký tự."),
+  password: requiredString.min(6, "Phải có ít nhất 6 ký tự."),
 });
 
 export const setPassword = z

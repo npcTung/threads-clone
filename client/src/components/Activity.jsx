@@ -1,13 +1,20 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "./ui";
 import { Link } from "react-router-dom";
 import path from "@/lib/path";
 import icons from "@/lib/icons";
 import { cn } from "@/lib/utils";
+import useActivitiesStore from "@/zustand/useActivitiesStore";
 
 const { Heart } = icons;
 
 const Activity = ({ pathName }) => {
+  const { unreadCount, fetchUnreadCount } = useActivitiesStore();
+
+  useEffect(() => {
+    fetchUnreadCount();
+  }, []);
+
   return (
     <Button
       variant={"ghost"}
@@ -22,9 +29,11 @@ const Activity = ({ pathName }) => {
               pathName === "/activity" && "opacity-100"
             )}
           />
-          <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1 text-xs font-medium tabular-nums text-white">
-            10
-          </span>
+          {unreadCount > 0 && (
+            <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1 text-xs font-medium tabular-nums text-white">
+              {unreadCount > 50 ? `+50` : unreadCount}
+            </span>
+          )}
         </div>
       </Link>
     </Button>

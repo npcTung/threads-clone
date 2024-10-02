@@ -15,6 +15,7 @@ const MenuBar = ({ className, setShowCreatePost }) => {
 
   return (
     <div className={className}>
+      {/* home */}
       <Button
         variant={"ghost"}
         className="flex items-center justify-start"
@@ -29,6 +30,7 @@ const MenuBar = ({ className, setShowCreatePost }) => {
           />
         </Link>
       </Button>
+      {/* search */}
       <Button
         variant={"ghost"}
         className="flex items-center justify-start"
@@ -43,8 +45,9 @@ const MenuBar = ({ className, setShowCreatePost }) => {
           />
         </Link>
       </Button>
-      <Messager pathName={pathName} />
-      <Activity pathName={pathName} />
+      {/* messager */}
+      {/* <Messager pathName={pathName} /> */}
+      {/* push */}
       <Button
         variant={"ghost"}
         className="flex items-center justify-start"
@@ -52,6 +55,9 @@ const MenuBar = ({ className, setShowCreatePost }) => {
       >
         <Plus className="opacity-50 hover:opacity-100 transition-all" />
       </Button>
+      {/* activity */}
+      <Activity pathName={pathName} />
+      {/* profile */}
       <Button
         variant={"ghost"}
         className="flex items-center justify-start"
