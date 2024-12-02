@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Link } from "react-router-dom";
 import path from "@/lib/path";
 import icons from "@/lib/icons";
@@ -46,7 +46,7 @@ const MenuBar = ({ className, setShowCreatePost }) => {
         </Link>
       </Button>
       {/* messager */}
-      {/* <Messager pathName={pathName} /> */}
+      <Messager pathName={pathName} />
       {/* push */}
       <Button
         variant={"ghost"}
@@ -76,7 +76,7 @@ const MenuBar = ({ className, setShowCreatePost }) => {
   );
 };
 
-export default MenuBar;
+export default memo(MenuBar);
 
 MenuBar.prototype = {
   className: PropTypes.string,

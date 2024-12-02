@@ -1,5 +1,5 @@
 import icons from "@/lib/icons";
-import React from "react";
+import React, { memo } from "react";
 import { Button } from "./ui";
 import { cn } from "@/lib/utils";
 import PropTypes from "prop-types";
@@ -19,7 +19,7 @@ const LoadingButton = ({ loading, disabled, className, ...props }) => {
   );
 };
 
-export default LoadingButton;
+export default memo(LoadingButton);
 
 LoadingButton.prototype = {
   loading: PropTypes.bool,

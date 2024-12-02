@@ -11,8 +11,8 @@ import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import "./styles.css";
-import { EditPost, LoadingButton, UserAvatar } from "..";
-import usePostsStore from "@/zustand/usePostsStore";
+import { EditInput, LoadingButton, UserAvatar } from "..";
+import { useUpdateCommentMutation } from "./mutations";
 
 const DialogCreateCommnet = ({
   open,
@@ -22,7 +22,7 @@ const DialogCreateCommnet = ({
   commentId,
   context,
 }) => {
-  const { updateCommentPost, isCreateLoading } = usePostsStore();
+  const mutation = useUpdateCommentMutation(commentId, postId);
 
   const editor = useEditor({
     extensions: [
@@ -33,11 +33,6 @@ const DialogCreateCommnet = ({
   });
 
   const input = editor?.getText({ blockSeparator: "\n" }) || "";
-
-  const handleSubmit = async () => {
-    await updateCommentPost(postId, commentId, { context: input });
-    if (!isCreateLoading) onOpenChange();
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,16 +52,24 @@ const DialogCreateCommnet = ({
                   </span>
                 </div>
               </div>
-              <EditPost editor={editor} />
+              <EditInput
+                editor={editor}
+                className={"max-h-[10rem] max-w-[752px] px-5 py-3"}
+              />
             </div>
           </div>
         </div>
         <DialogFooter>
           <LoadingButton
             disabled={!input.trim()}
-            loading={isCreateLoading}
+            loading={mutation.isPending}
             variant="outline"
-            onClick={handleSubmit}
+            onClick={() =>
+              mutation.mutate(
+                { context: input },
+                { onSuccess: onOpenChange(false) }
+              )
+            }
           >
             Chỉnh sửa
           </LoadingButton>

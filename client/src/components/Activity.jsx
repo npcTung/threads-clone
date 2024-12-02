@@ -1,19 +1,44 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Button } from "./ui";
 import { Link } from "react-router-dom";
 import path from "@/lib/path";
 import icons from "@/lib/icons";
 import { cn } from "@/lib/utils";
-import useActivitiesStore from "@/zustand/useActivitiesStore";
+import useAppStore from "@/zustand/useAppStore";
+import { useQuery } from "@tanstack/react-query";
+import * as apis from "@/apis";
 
 const { Heart } = icons;
 
+const markAsRead = async () => {
+  try {
+    await apis.markAsRead();
+  } catch (error) {
+    console.error(error.message);
+  }
+};
+
+const fetchUnreadCount = async () => {
+  try {
+    const response = await apis.unreadCount();
+    if (response.success) return response.unreadCount;
+  } catch (error) {
+    console.error(error.message);
+  }
+};
+
 const Activity = ({ pathName }) => {
-  const { unreadCount, fetchUnreadCount } = useActivitiesStore();
+  const { unreadCount, setUnreadCount } = useAppStore();
+
+  const { data } = useQuery({
+    queryKey: ["activities", "unread_count"],
+    queryFn: fetchUnreadCount,
+    staleTime: 5000,
+  });
 
   useEffect(() => {
-    fetchUnreadCount();
-  }, []);
+    if (data) setUnreadCount(data);
+  }, [data]);
 
   return (
     <Button
@@ -22,7 +47,13 @@ const Activity = ({ pathName }) => {
       asChild
     >
       <Link to={`/${path.ACTIVITY}`}>
-        <div className="relative">
+        <div
+          className="relative"
+          onClick={() => {
+            markAsRead();
+            setUnreadCount(0);
+          }}
+        >
           <Heart
             className={cn(
               "opacity-50 hover:opacity-100 transition-all",

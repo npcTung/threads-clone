@@ -30,7 +30,7 @@ const DialogMedias = ({ attachments, open, onOpenChange }) => {
                 <img
                   src={m.url}
                   alt="Attachment"
-                  className="mx-auto size-[99%] max-w-[500px] rounded-2xl object-contain"
+                  className="mx-auto size-full max-w-[500px] object-contain"
                   onClick={(e) => e.stopPropagation()}
                 />
               </CarouselItem>

@@ -7,8 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui";
-import { EditPost, MediaPreviews } from ".";
-import { LoadingButton, UserAvatar } from "..";
+import { MediaPreviews } from ".";
+import { EditInput, LoadingButton, UserAvatar } from "..";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -16,7 +16,7 @@ import icons from "@/lib/icons";
 import useCurrentStore from "@/zustand/useCurrentStore";
 import { toast } from "sonner";
 import { convertFile } from "@/lib/utils";
-import usePostsStore from "@/zustand/usePostsStore";
+import { useCreatePostMutation } from "./mutations";
 
 const { ImagePlus } = icons;
 
@@ -24,8 +24,8 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
   const [files, setFiles] = useState([]);
   const [attachments, setAttachments] = useState([{ type: "", url: [] }]);
   const { currentData } = useCurrentStore();
-  const { createPost, isCreateLoading } = usePostsStore();
   const maxSize = 50 * 1024 * 1024;
+  const mutation = useCreatePostMutation();
 
   const editor = useEditor({
     extensions: [
@@ -52,7 +52,7 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
     if (fileArray.length) setAttachments(fileArray);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (files.length <= 10 && input.trim()) {
       let size = 0;
       for (let file of files) size += file.size;
@@ -64,8 +64,7 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
         postedBy: currentData._id,
         files: files?.length ? Array.from(files) : [],
       };
-      await createPost(payload);
-      if (!isCreateLoading) onClose();
+      mutation.mutate(payload, { onSuccess: onClose });
     } else
       toast.warning(
         files.length > 10 && "Số lượng file không được vượt quá 10."
@@ -101,7 +100,10 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
                   </span>
                 </div>
               </div>
-              <EditPost editor={editor} />
+              <EditInput
+                editor={editor}
+                className={"max-h-[10rem] max-w-[752px] px-5 py-3"}
+              />
               {attachments.length > 0 && (
                 <MediaPreviews attachments={attachments} />
               )}
@@ -121,8 +123,9 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
         <DialogFooter>
           <LoadingButton
             disabled={!input.trim()}
-            loading={isCreateLoading}
+            loading={mutation.isPending}
             variant="outline"
+            className={"w-fit"}
             onClick={handleSubmit}
           >
             Tạo

@@ -16,8 +16,14 @@ VITE_IP_TOKEN=...
 VITE_API_URI=...
 // google id
 VITE_GOOGLE_CLIENT_ID=...
+// giphy api key
+VITE_API_GIPHY=...
 ```
 
 # Setup logging to google
 
 - [@google cloud console](https://cloud.google.com/cloud-console) to get client id
+
+# Setup api key giphy
+
+- [@api key giphy](https://developers.giphy.com/docs/) logging and click to button [Create an API Key]

@@ -27,7 +27,7 @@ const User = Loadable(lazy(() => import("@/pages/home/User")));
 const Search = Loadable(lazy(() => import("@/pages/home/Search")));
 const PostDetail = Loadable(lazy(() => import("@/pages/home/PostDetail")));
 const Activity = Loadable(lazy(() => import("@/pages/home/Activity")));
-const Messager = Loadable(lazy(() => import("@/pages/home/Messager")));
+const Chats = Loadable(lazy(() => import("@/pages/home/Chats")));
 
 const Router = () => {
   return useRoutes([
@@ -54,7 +54,7 @@ const Router = () => {
         { path: path.SEARCH, element: <Search /> },
         { path: path.POSTS__ID, element: <PostDetail /> },
         { path: path.ACTIVITY, element: <Activity /> },
-        { path: path.MESSAGER, element: <Messager /> },
+        { path: path.MESSAGER, element: <Chats /> },
         { path: path.NOT_FOUND, element: <NotFound /> },
         {
           path: path.ALL,

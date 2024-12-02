@@ -26,3 +26,11 @@ export * from "./input-otp";
 export * from "./sonner";
 // tabs
 export * from "./tabs";
+// avatar
+export * from "./avatar";
+// scroll-area
+export * from "./scroll-area";
+// popover
+export * from "./popover";
+// switch
+export * from "./switch";

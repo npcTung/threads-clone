@@ -16,7 +16,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  InfiniteScrollContainer,
   LoadingButton,
+  LoadingScreen,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -28,11 +30,49 @@ import { vi } from "date-fns/locale";
 import { formatDate } from "date-fns";
 import { cn, formatRelativeDate, formmatNumber } from "@/lib/utils";
 import useCurrentStore from "@/zustand/useCurrentStore";
-import usePostsStore from "@/zustand/usePostsStore";
+import { getAllCommentsPost } from "./actions";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useDeleteCommentMutation, useLikeCommentMutation } from "./mutations";
 
-const { ChevronRight, Dot, Heart, Ellipsis, SquarePen, Trash2 } = icons;
+const { ChevronRight, Dot, Heart, Ellipsis, SquarePen, Trash2, LoaderCircle } =
+  icons;
 
-const Comments = ({ datas, postId }) => {
+const Comments = ({ postId }) => {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    status,
+  } = useInfiniteQuery({
+    queryKey: ["comments", postId],
+    queryFn: ({ pageParam }) => getAllCommentsPost(postId, pageParam),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor,
+    staleTime: 5000,
+  });
+
+  const datas = data?.pages.find((comment) => comment);
+
+  if (status === "pending") return <LoadingScreen />;
+
+  if (status === "success" && !datas?.comments?.length && !hasNextPage)
+    return (
+      <div className="p-5 flex items-center justify-center">
+        <span className="text-center">Không có bình luận nào.</span>
+      </div>
+    );
+
+  if (status === "error")
+    return (
+      <div className="p-5 flex items-center justify-center">
+        <span className="text-center text-destructive">
+          Đã xảy ra lỗi khi tải bình luận.
+        </span>
+      </div>
+    );
+
   return (
     <>
       <div className="w-full flex flex-col space-y-5">
@@ -43,9 +83,16 @@ const Comments = ({ datas, postId }) => {
             <ChevronRight className="size-5" />
           </div>
         </div>
-        {datas.map((data) => (
-          <Comment key={data._id} data={data} postId={postId} />
-        ))}
+        <InfiniteScrollContainer
+          onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
+        >
+          {datas?.comments.map((data) => (
+            <Comment key={data._id} data={data} postId={postId} />
+          ))}
+          {isFetchingNextPage && (
+            <LoaderCircle className="mx-auto size-5 animate-spin" />
+          )}
+        </InfiniteScrollContainer>
       </div>
     </>
   );
@@ -57,8 +104,8 @@ const Comment = ({ data, postId }) => {
   const [showDeteteComment, setShowDeteteComment] = useState(false);
   const [showEditComment, setShowEditComment] = useState(false);
   const { currentData } = useCurrentStore();
-  const { likeUnlikeCommentPost } = usePostsStore();
   const isLike = data.likes.includes(currentData._id);
+  const mutation = useLikeCommentMutation(postId);
 
   return (
     <>
@@ -128,7 +175,7 @@ const Comment = ({ data, postId }) => {
                 <span className="text-sm">{data.context}</span>
                 <div
                   className="flex w-fit gap-1 items-center cursor-pointer rounded-full hover:bg-muted p-2"
-                  onClick={() => likeUnlikeCommentPost(postId, data._id)}
+                  onClick={() => mutation.mutate(data._id)}
                 >
                   <Heart
                     className={cn(
@@ -175,7 +222,7 @@ const DropComment = ({ setShowDeletecomment, setShowEditComment }) => {
 };
 
 const DialogDeleteComment = ({ open, onOpenChange, postId, commentId }) => {
-  const { deleteCommentPost, isCreateLoading } = usePostsStore();
+  const mutation = useDeleteCommentMutation(postId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -192,8 +239,10 @@ const DialogDeleteComment = ({ open, onOpenChange, postId, commentId }) => {
           </DialogClose>
           <LoadingButton
             variant="destructive"
-            loading={isCreateLoading}
-            onClick={() => deleteCommentPost(postId, commentId)}
+            loading={mutation.isPending}
+            onClick={() =>
+              mutation.mutate(commentId, { onSuccess: onOpenChange(false) })
+            }
           >
             Xóa
           </LoadingButton>

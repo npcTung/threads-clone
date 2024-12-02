@@ -1,33 +1,39 @@
-import React, { useState } from "react";
-import avatarPlaceholder from "@/assets/avatar-placeholder.png";
+import React from "react";
 import { cn } from "@/lib/utils";
 import PropTypes from "prop-types";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui";
 
 const UserAvatar = ({
   avatarUrl,
   displayName = "CN",
-  size,
   className,
   handelOnclick,
+  isOnline,
 }) => {
-  const [imageUrl, setImageUrl] = useState(avatarUrl || avatarPlaceholder);
-
   return (
-    <img
-      src={imageUrl}
-      alt={displayName}
-      width={size ?? 48}
-      height={size ?? 48}
-      onError={() => setImageUrl(avatarPlaceholder)}
-      className={cn(
-        "aspect-square h-fit flex-none rounded-full bg-secondary object-cover",
-        className
+    <div className="relative inline-block w-fit">
+      <Avatar
+        className={cn(className)}
+        onClick={(e) => {
+          e.stopPropagation();
+          handelOnclick && handelOnclick();
+        }}
+      >
+        <AvatarImage src={avatarUrl} alt={displayName} />
+        <AvatarFallback>
+          {displayName
+            .split(/[\s.\W]+/)
+            .map((part) => part[0])
+            .join("")}
+        </AvatarFallback>
+      </Avatar>
+      {isOnline && (
+        <span
+          className="absolute bottom-0 right-1 size-3 bg-green-500 border border-white rounded-full"
+          title="Online"
+        />
       )}
-      onClick={(e) => {
-        e.stopPropagation();
-        handelOnclick && handelOnclick();
-      }}
-    />
+    </div>
   );
 };
 
@@ -39,4 +45,5 @@ UserAvatar.prototype = {
   size: PropTypes.number,
   className: PropTypes.string,
   handelOnclick: PropTypes.func,
+  isOnline: PropTypes.bool,
 };

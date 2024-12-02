@@ -77,4 +77,8 @@ export const endpoints = {
     unreadCount: "activity/unread-count",
     markAsRead: "activity/mark-as-read",
   },
+  comments: {
+    comment: "comment/",
+    likeUnlike: "comment/like-unlike/",
+  },
 };

@@ -69,7 +69,7 @@ const SignUpForm = () => {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <div className="flex w-full items-center justify-between">
+          <div className="flex w-full items-center justify-between space-x-2">
             <FormInput
               lable="Tên người dùng"
               form={form}

@@ -23,9 +23,9 @@ const FormInput = ({
       control={form.control}
       name={name}
       render={({ field }) => (
-        <FormItem>
+        <FormItem className="w-full">
           {lable && <FormLabel>{lable}</FormLabel>}
-          <FormControl>
+          <FormControl className="w-full">
             <Input
               placeholder={placeholder}
               {...field}

@@ -1,9 +1,10 @@
 import axiosConfig, { endpoints } from "@/lib/axiosConfig";
 
-export const getUserPosts = (userName) =>
+export const getUserPosts = (userName, params) =>
   axiosConfig({
     url: endpoints.posts.getUserPosts + userName,
     method: "GET",
+    params,
   });
 
 export const getFeedPosts = (params) =>

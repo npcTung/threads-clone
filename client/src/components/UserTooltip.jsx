@@ -43,8 +43,8 @@ const UserTooltip = ({ children, user }) => {
               <Link to={`/${user?.userName}`} className="size-[70px]">
                 <UserAvatar
                   avatarUrl={user?.avatarUrl}
-                  size={70}
                   displayName={user?.displayName}
+                  className="size-[70px]"
                 />
               </Link>
             </div>

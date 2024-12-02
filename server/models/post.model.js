@@ -20,23 +20,6 @@ var postSchema = new mongoose.Schema(
     ],
     filenames: [{ type: String }],
     likes: [{ type: mongoose.Types.ObjectId, ref: "User" }],
-    bookmarkedUsers: [{ type: mongoose.Types.ObjectId, ref: "User" }],
-    comments: [
-      {
-        userId: {
-          type: mongoose.Types.ObjectId,
-          ref: "User",
-          required: [true, "Userid commnet is required."],
-        },
-        context: {
-          type: String,
-          required: [true, "Context comment is required."],
-        },
-        likes: [{ type: mongoose.Types.ObjectId, ref: "User" }],
-        createdAt: { type: Date, default: Date.now },
-        updatedAt: { type: Date, default: Date.now },
-      },
-    ],
   },
   { timestamps: true }
 );

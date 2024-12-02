@@ -1,5 +1,5 @@
 import icons from "@/lib/icons";
-import React from "react";
+import React, { memo } from "react";
 
 const { LoaderCircle } = icons;
 
@@ -11,4 +11,4 @@ const LoadingScreen = () => {
   );
 };
 
-export default LoadingScreen;
+export default memo(LoadingScreen);

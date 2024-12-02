@@ -2,6 +2,7 @@ import {
   Alert,
   AlertDescription,
   AlertTitle,
+  Button,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -23,16 +24,14 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import * as apis from "@/apis";
 import { toast } from "sonner";
-import useCurrentStore from "@/zustand/useCurrentStore";
 
-const { AlertCircle, MoveLeft } = icons;
+const { AlertCircle, MoveLeft, RotateCcw } = icons;
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const setEmailSendOtp = useCurrentStore((state) => state.setEmail);
 
   const handleSubmit = async () => {
     if (!email) {
@@ -44,7 +43,6 @@ const ForgotPassword = () => {
       const response = await apis.forgotPassword(email);
       if (response.success) {
         toast.success(response.mes);
-        setEmailSendOtp(email);
         setError("");
         setShowResetPassword(true);
       }
@@ -59,7 +57,8 @@ const ForgotPassword = () => {
     <>
       <DialogRestPassword
         open={showResetPassword}
-        onOpenChange={() => setShowResetPassword(false)}
+        onOpenChange={setShowResetPassword}
+        email={email}
       />
       <main className="flex h-screen items-center justify-center p-5">
         <div className="h-full max-h-[40rem] w-full max-w-[64rem] overflow-hidden rounded-2xl bg-card shadow-lg">
@@ -107,10 +106,10 @@ const ForgotPassword = () => {
 
 export default ForgotPassword;
 
-const DialogRestPassword = ({ open, onOpenChange }) => {
+const DialogRestPassword = ({ open, onOpenChange, email }) => {
   const navigte = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const { setEmail, email } = useCurrentStore();
+  const [isSendOtp, setIsSendOtp] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(restPasswordSchema),
@@ -122,15 +121,14 @@ const DialogRestPassword = ({ open, onOpenChange }) => {
   });
 
   const onSubmit = async (data) => {
+    setIsLoading(true);
     const { confirmPassword, ...payload } = data;
 
     try {
-      setIsLoading(true);
       const response = await apis.resetPassword(payload, email);
       if (response.success) {
         toast.success(response.mes);
-        setEmail(null);
-        onOpenChange();
+        onClose();
         navigte(`/${path.AUTH}/${path.LOGIN}`);
       }
     } catch (error) {
@@ -140,8 +138,26 @@ const DialogRestPassword = ({ open, onOpenChange }) => {
     }
   };
 
+  const onClose = () => {
+    onOpenChange(false);
+    form.reset();
+  };
+
+  const handleResendOtp = async () => {
+    setIsSendOtp(true);
+    try {
+      const sendOtp = await apis.sendOtp(email);
+      if (sendOtp.success) toast.success(sendOtp.mes);
+      else toast.error(sendOtp.mes);
+    } catch (error) {
+      console.error(error.message);
+    } finally {
+      setIsSendOtp(false);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Đặt lại mật khẩu</DialogTitle>
@@ -151,12 +167,24 @@ const DialogRestPassword = ({ open, onOpenChange }) => {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            <FormInput
-              form={form}
-              lable="Nhập Otp"
-              name="otp"
-              placeholder="Nhập otp..."
-            />
+            <div className="flex space-x-2 items-end w-full">
+              <FormInput
+                form={form}
+                lable="Nhập Otp"
+                name="otp"
+                placeholder="Nhập otp..."
+              />
+              <Button
+                variant="outline"
+                className="space-x-1"
+                type="button"
+                onClick={handleResendOtp}
+                disabled={isSendOtp}
+              >
+                <span>Gửi lại</span>
+                <RotateCcw className="size-4" />
+              </Button>
+            </div>
             <FormPassword
               form={form}
               lable="Mật khẩu"

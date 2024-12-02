@@ -94,7 +94,7 @@ const LoginForm = () => {
       {/* Setup user login width google */}
       <DialogSetupPassword
         open={isSetupPassword}
-        onOpenChange={() => setIsSetupPassword(false)}
+        onOpenChange={setIsSetupPassword}
       />
       {/* send email verify */}
       <DialogSendEmail
@@ -105,7 +105,7 @@ const LoginForm = () => {
       {/* final register */}
       <FinalRegister
         open={showFinalRegister}
-        onOpenChange={() => setShowFinalRegister(false)}
+        onOpenChange={setShowFinalRegister}
       />
 
       <Form {...form}>

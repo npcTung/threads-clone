@@ -4,8 +4,16 @@ const asyncHandler = require("express-async-handler");
 
 const getActivities = asyncHandler(async (req, res) => {
   const cursor = req.query.cursor || undefined;
-  const pageSize = 10;
+  const pageSize = 20;
   const { id } = req.user;
+  const objPopulate = [
+    {
+      path: "isSuerId",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+    { path: "postId" },
+    { path: "commentId" },
+  ];
 
   const user = await User.findById(id);
   if (!user)
@@ -18,16 +26,10 @@ const getActivities = asyncHandler(async (req, res) => {
   if (cursor) formatedQueries._id = { $lt: cursor };
 
   const activities = await Activity.find(formatedQueries)
-    .populate([
-      {
-        path: "isSuerId",
-        select: "-verified -password -role -otp -otp_expiry_time",
-      },
-      { path: "postId" },
-      { path: "postId.$.comments" },
-    ])
-    .sort({ createAt: -1 })
-    .limit(pageSize + 1);
+    .populate(objPopulate)
+    .sort({ createdAt: -1 })
+    .limit(pageSize + 1)
+    .exec();
 
   const nextCursor =
     activities.length > pageSize ? activities[pageSize]._id : null;

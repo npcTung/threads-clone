@@ -7,8 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui";
-import { EditPost, MediaPreviews } from ".";
-import { LoadingButton, UserAvatar } from "..";
+import { MediaPreviews } from ".";
+import { EditInput, LoadingButton, UserAvatar } from "..";
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -16,7 +16,7 @@ import icons from "@/lib/icons";
 import useCurrentStore from "@/zustand/useCurrentStore";
 import { toast } from "sonner";
 import { convertFile } from "@/lib/utils";
-import usePostsStore from "@/zustand/usePostsStore";
+import { useUpdatePostMutation } from "./mutations";
 
 const { ImagePlus } = icons;
 
@@ -24,8 +24,8 @@ const DialogEditPost = ({ open, onOpenChange, data }) => {
   const [files, setFiles] = useState([]);
   const [attachments, setAttachments] = useState(data.fileUrls);
   const { currentData } = useCurrentStore();
-  const { updatePost, isCreateLoading } = usePostsStore();
   const maxSize = 50 * 1024 * 1024;
+  const mutation = useUpdatePostMutation();
 
   const editor = useEditor({
     extensions: [
@@ -64,8 +64,10 @@ const DialogEditPost = ({ open, onOpenChange, data }) => {
         context: input,
         files: files?.length ? Array.from(files) : [],
       };
-      await updatePost(data._id, payload);
-      if (!isCreateLoading) onOpenChange();
+      mutation.mutate(
+        { postId: data._id, payload },
+        { onSuccess: () => onOpenChange(false) }
+      );
     } else
       toast.warning(
         files.length > 10 && "Số lượng file không được vượt quá 10."
@@ -94,7 +96,10 @@ const DialogEditPost = ({ open, onOpenChange, data }) => {
                   </span>
                 </div>
               </div>
-              <EditPost editor={editor} />
+              <EditInput
+                editor={editor}
+                className={"max-h-[10rem] max-w-[752px] px-5 py-3"}
+              />
               {attachments.length > 0 && (
                 <MediaPreviews attachments={attachments} />
               )}
@@ -114,7 +119,7 @@ const DialogEditPost = ({ open, onOpenChange, data }) => {
         <DialogFooter>
           <LoadingButton
             disabled={!input.trim()}
-            loading={isCreateLoading}
+            loading={mutation.isPending}
             variant="outline"
             onClick={handleSubmit}
           >

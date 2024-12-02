@@ -6,7 +6,7 @@ var ativitySchema = new mongoose.Schema(
     recipientId: { type: mongoose.Types.ObjectId, ref: "User" },
     isSuerId: { type: mongoose.Types.ObjectId, ref: "User" },
     postId: { type: mongoose.Types.ObjectId, ref: "Post" },
-    commentId: { type: mongoose.Types.ObjectId },
+    commentId: { type: mongoose.Types.ObjectId, ref: "Comment" },
     type: { type: String, enum: ["Like", "Comment", "Follow", "Like_Comment"] },
     read: { type: Boolean, default: false },
   },

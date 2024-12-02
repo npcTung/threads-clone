@@ -1,5 +1,5 @@
 import icons from "@/lib/icons";
-import React from "react";
+import React, { memo } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,9 +19,8 @@ import path from "@/lib/path";
 import * as apis from "@/apis";
 import { toast } from "sonner";
 import useCurrentStore from "@/zustand/useCurrentStore";
-import usePostsStore from "@/zustand/usePostsStore";
 import PropTypes from "prop-types";
-import useActivitiesStore from "@/zustand/useActivitiesStore";
+import useAppStore from "@/zustand/useAppStore";
 
 const { AlignLeft, Sun, Moon, LogOutIcon, UserIcon, Monitor, Check } = icons;
 
@@ -29,16 +28,14 @@ const DropMenu = ({ className }) => {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const { currentData, clearCurrentData } = useCurrentStore();
-  const { clearPostData } = usePostsStore();
-  const { clearActivities } = useActivitiesStore();
+  const { clearAppData } = useAppStore();
 
   const handleLogout = async () => {
     try {
       const response = await apis.logout();
       if (response.success) {
         clearCurrentData();
-        clearPostData();
-        clearActivities();
+        clearAppData();
         navigate(`/${path.AUTH}/${path.LOGIN}`);
       }
     } catch (error) {
@@ -104,7 +101,7 @@ const DropMenu = ({ className }) => {
   );
 };
 
-export default DropMenu;
+export default memo(DropMenu);
 
 DropMenu.prototype = {
   className: PropTypes.string,

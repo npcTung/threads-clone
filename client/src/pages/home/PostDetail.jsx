@@ -19,11 +19,13 @@ import icons from "@/lib/icons";
 import path from "@/lib/path";
 import { cn, formatRelativeDate, formmatNumber } from "@/lib/utils";
 import useCurrentStore from "@/zustand/useCurrentStore";
-import usePostsStore from "@/zustand/usePostsStore";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getDetialPost } from "./actions";
+import { useLikePostMutation } from "@/components/posts/mutations";
 
 const { Dot, Heart, MessageSquare } = icons;
 
@@ -32,17 +34,22 @@ const PostDetail = () => {
   const [showDeletePost, setShowDeletePost] = useState(false);
   const [showCreateCommnet, setShowCreateCommnet] = useState(false);
   const [showEditPost, setShowEditPost] = useState(false);
-  const { post, getPost, isLoading, like_unlike } = usePostsStore();
   const { currentData } = useCurrentStore();
   const { post_id } = useParams();
 
-  useEffect(() => {
-    if (post_id) getPost(post_id);
-  }, [post_id]);
+  const {
+    data: post,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["detail-post", post_id],
+    queryFn: () => getDetialPost(post_id),
+    staleTime: 5000,
+  });
 
   if (isLoading) return <LoadingScreen />;
 
-  if (!post) return <NotFound />;
+  if (error) return <NotFound />;
 
   return (
     <>
@@ -73,7 +80,7 @@ const PostDetail = () => {
         onOpenChange={setShowEditPost}
         open={showEditPost}
       />
-      <div className="w-[720px] mx-auto my-10 border md:rounded-2xl bg-card">
+      <div className="max-w-[720px] mx-auto mb-5 border md:rounded-2xl bg-card">
         <PostHeader
           data={post}
           setShowDeletePost={setShowDeletePost}
@@ -81,11 +88,8 @@ const PostDetail = () => {
           setShowCreateCommnet={setShowCreateCommnet}
           setShowEditPost={setShowEditPost}
           currentData={currentData}
-          like_unlike={like_unlike}
         />
-        {post?.comments?.length > 0 && (
-          <Comments datas={post.comments} postId={post._id} />
-        )}
+        <Comments postId={post._id} />
       </div>
     </>
   );
@@ -100,9 +104,9 @@ const PostHeader = ({
   setShowCreateCommnet,
   currentData,
   setShowEditPost,
-  like_unlike,
 }) => {
   const isLike = data.likes.includes(currentData._id);
+  const mutation = useLikePostMutation();
 
   return (
     <div className={"w-full flex items-center justify-between p-5"}>
@@ -152,7 +156,7 @@ const PostHeader = ({
           <div className="flex gap-3 mt-1 border-b">
             <div
               className="flex gap-1 items-center cursor-pointer rounded-full hover:bg-muted p-2"
-              onClick={() => like_unlike(data._id)}
+              onClick={() => mutation.mutate(data._id)}
             >
               <Heart
                 className={cn("size-5", isLike && "fill-red-500 text-red-500")}
@@ -164,7 +168,7 @@ const PostHeader = ({
               onClick={setShowCreateCommnet}
             >
               <MessageSquare className="size-5" />
-              <small>{formmatNumber(data.comments.length)}</small>
+              <small>{formmatNumber(data.totalCountComment || 0)}</small>
             </div>
           </div>
         </div>

@@ -20,7 +20,7 @@ import icons from "@/lib/icons";
 import avatarPlaceholder from "@/assets/avatar-placeholder.png";
 import CropImageDialog from "./CropImageDialog";
 import PropTypes from "prop-types";
-import useCurrentStore from "@/zustand/useCurrentStore";
+import { useUpdateUserProfile } from "@/hooks/useCurrentData";
 
 const { Camera } = icons;
 
@@ -47,7 +47,7 @@ export default DialogEditUser;
 
 const EditUserProfile = ({ userData, onOpenChange }) => {
   const [croppedAvatar, setCroppedAvatar] = useState(null);
-  const { updateUserProfile, isEditLoading } = useCurrentStore();
+  const updateUser = useUpdateUserProfile();
 
   const form = useForm({
     resolver: zodResolver(updateUserProfileSchema),
@@ -66,9 +66,8 @@ const EditUserProfile = ({ userData, onOpenChange }) => {
         ? new File([croppedAvatar], `avatar_${userData._id}.jpg`)
         : null,
     };
-
-    await updateUserProfile(payload);
-    if (!isEditLoading) onOpenChange();
+    updateUser.updateUserProfile(payload);
+    onOpenChange(!updateUser.isSuccess);
   };
 
   return (
@@ -115,7 +114,7 @@ const EditUserProfile = ({ userData, onOpenChange }) => {
             className="bg-muted min-h-[100px] max-h-[200px]"
           />
           <LoadingButton
-            loading={isEditLoading}
+            loading={updateUser.isPending}
             type="sumbit"
             className={"w-full"}
           >

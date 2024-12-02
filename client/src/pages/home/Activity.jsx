@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
-import useActivitiesStore from "@/zustand/useActivitiesStore";
 import {
+  InfiniteScrollContainer,
   LoadingScreen,
   NotFound,
   Tooltip,
@@ -16,48 +16,59 @@ import path from "@/lib/path";
 import { formatRelativeDate } from "@/lib/utils";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
+import { fetchActivities } from "./actions";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
-const { User2, MessageSquare, Heart, Dot } = icons;
+const { User2, MessageSquare, Heart, Dot, LoaderCircle } = icons;
 
 const Activity = () => {
-  const { markAsRead } = useActivitiesStore();
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    status,
+  } = useInfiniteQuery({
+    queryKey: ["activities"],
+    queryFn: ({ pageParam }) => fetchActivities(pageParam),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor,
+    staleTime: 5000,
+  });
 
-  useEffect(() => {
-    markAsRead();
-  }, []);
+  const activities = data?.pages.flatMap((page) => page.activities) || [];
+
+  if (status === "pending") return <LoadingScreen />;
+
+  if (status === "success" && !activities.length && !hasNextPage)
+    return (
+      <div className="p-5 flex items-center justify-center">
+        <span className="text-center text-destructive">
+          Không có thông báo nào.
+        </span>
+      </div>
+    );
+
+  if (status === "error") return <NotFound />;
 
   return (
-    <div className="w-[720px] mx-auto mb-10 p-5 border space-y-5 lg:rounded-2xl bg-card">
-      <ActivityPrewiews />
+    <div className="max-w-[720px] mx-auto mb-10 p-5 border space-y-5 lg:rounded-2xl bg-card">
+      <InfiniteScrollContainer
+        onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
+      >
+        {activities.map((data) => (
+          <ActivityPrewiew key={data._id} data={data} />
+        ))}
+        {isFetchingNextPage && (
+          <LoaderCircle className="mx-auto size-5 animate-spin" />
+        )}
+      </InfiniteScrollContainer>
     </div>
   );
 };
 
 export default Activity;
-
-const ActivityPrewiews = () => {
-  const { activities, nextCursor, isLoading, fetchActivities } =
-    useActivitiesStore();
-
-  useEffect(() => {
-    fetchActivities({ cursor: nextCursor });
-  }, [nextCursor]);
-
-  if (isLoading) return <LoadingScreen />;
-  else if (!activities) return <NotFound />;
-
-  return (
-    <div>
-      {activities?.length > 0 ? (
-        activities.map((data) => <ActivityPrewiew key={data._id} data={data} />)
-      ) : (
-        <div className="w-full flex items-center justify-center p-5">
-          Không có thông báo nào
-        </div>
-      )}
-    </div>
-  );
-};
 
 const ActivityPrewiew = ({ data }) => {
   const notificationTypeMap = {
@@ -120,11 +131,7 @@ const ActivityPrewiew = ({ data }) => {
                   <>
                     <Dot className="size-5 opacity-50" />
                     <small className="opacity-50">
-                      {
-                        data?.postId?.comments?.find(
-                          (item) => item._id === data?.commentId
-                        )?.context
-                      }
+                      {data.commentId.context}
                     </small>
                   </>
                 )}

@@ -77,7 +77,6 @@ const register = asyncHandler(async (req, res) => {
 
 const sendOtp = asyncHandler(async (req, res) => {
   const { email } = req.params;
-  if (!email) throw new Error("Yêu cầu không hợp lệ.");
 
   const user = await User.findOne({ email });
   if (!user) throw new Error("Không tìm thấy người dùng.");

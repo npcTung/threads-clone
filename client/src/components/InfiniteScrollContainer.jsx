@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import React from "react";
 import { useInView } from "react-intersection-observer";
 
-const InfiniteScrollContainer = ({ children, onBottomReached, className }) => {
+const InfiniteScrollContainer = ({ onBottomReached, className, children }) => {
   const { ref } = useInView({
     rootMargin: "200px",
     onChange(inView) {
@@ -19,9 +19,7 @@ const InfiniteScrollContainer = ({ children, onBottomReached, className }) => {
 };
 
 export default InfiniteScrollContainer;
-
 InfiniteScrollContainer.prototype = {
-  children: PropTypes.node.isRequired,
   onBottomReached: PropTypes.func.isRequired,
   className: PropTypes.string,
 };

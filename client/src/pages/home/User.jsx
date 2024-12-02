@@ -13,9 +13,11 @@ import {
   DropdownMenuTrigger,
   FollowButton,
   FollowerCount,
+  InfiniteScrollContainer,
   LoadingScreen,
   NotFound,
   Post,
+  ScrollArea,
   Tabs,
   TabsContent,
   TabsList,
@@ -28,43 +30,51 @@ import React, { useEffect, useState } from "react";
 import femaleIcon from "@/assets/female-icon.svg";
 import maleIcon from "@/assets/male-icon.svg";
 import icons from "@/lib/icons";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
 import * as apis from "@/apis";
 import { toast } from "sonner";
 import useCurrentStore from "@/zustand/useCurrentStore";
-import usePostsStore from "@/zustand/usePostsStore";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { fetchGetUser, fetchGetUserPosts } from "./actions";
+import path from "@/lib/path";
 
-const { CircleEllipsis, Link2, Info, UserX, Dot } = icons;
+const { CircleEllipsis, Link2, Info, UserX, Dot, LoaderCircle } = icons;
 
 const User = () => {
   const { currentData } = useCurrentStore();
-  const { userPosts, getUserPosts, isLoading, setIsLoading } = usePostsStore();
   const { user_name } = useParams();
-  const [user, setUser] = useState(null);
 
-  const fetchGetUser = async (userName) => {
-    try {
-      setIsLoading(true);
-      const response = await apis.getUser(userName);
-      if (response) setUser(response.data);
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    data: user,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["user", user_name],
+    queryFn: () => fetchGetUser(user_name),
+    staleTime: 5000,
+  });
 
-  useEffect(() => {
-    if (user_name) {
-      fetchGetUser(user_name);
-      getUserPosts(user_name);
-    }
-  }, [user_name]);
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    status,
+  } = useInfiniteQuery({
+    queryKey: ["posts", user_name],
+    queryFn: ({ pageParam }) => fetchGetUserPosts(user_name, pageParam),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    staleTime: 5000,
+  });
 
-  if (isLoading) return <LoadingScreen />;
-  if (!user) return <NotFound />;
+  const userPosts = data?.pages.flatMap((page) => page.posts) || [];
+
+  if (isLoading || status === "pending") return <LoadingScreen />;
+  if (error) return <NotFound />;
 
   return (
     <div className="max-w-[720px] w-full mx-auto mb-10 border space-y-5 md:rounded-2xl bg-card">
@@ -73,20 +83,26 @@ const User = () => {
         isEdit={user?._id === currentData?._id}
         currentData={currentData}
       />
-      {userPosts?.length > 0 ? (
-        userPosts.map((post, idx) => (
+      <InfiniteScrollContainer
+        onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
+      >
+        {userPosts.map((post, idx) => (
           <Post
-            key={post._id}
+            key={idx}
             className={idx !== userPosts.length - 1 && "border-b"}
             data={post}
             isEdit={user?._id === currentData?._id}
           />
-        ))
-      ) : (
-        <div className="p-5 flex items-center justify-center">
-          <span>Không có bài viết nào</span>
-        </div>
-      )}
+        ))}
+        {status === "success" && !userPosts.length && !hasNextPage && (
+          <div className="p-5 flex items-center justify-center">
+            <span>Không có bài viết nào</span>
+          </div>
+        )}
+        {isFetchingNextPage && (
+          <LoaderCircle className="mx-auto size-5 animate-spin" />
+        )}
+      </InfiniteScrollContainer>
     </div>
   );
 };
@@ -99,6 +115,7 @@ const UserHeader = ({ userData, isEdit, currentData }) => {
   const [showEditUser, setShowEditUser] = useState(false);
   const [showFollow, setShowFollow] = useState(false);
   const followingId = currentData.following.map((followId) => followId._id);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -157,8 +174,7 @@ const UserHeader = ({ userData, isEdit, currentData }) => {
             <UserAvatar
               avatarUrl={userData?.avatarUrl}
               displayName={userData?.displayName}
-              size={100}
-              className={"cursor-pointer"}
+              className={"cursor-pointer size-28"}
               handelOnclick={() => setShowAvatar(true)}
             />
           </div>
@@ -207,7 +223,11 @@ const UserHeader = ({ userData, isEdit, currentData }) => {
               isFollow={followingId.includes(userData._id)}
               userId={userData._id}
             />
-            <Button variant={"outline"} className={"flex-1"}>
+            <Button
+              variant={"outline"}
+              className={"flex-1"}
+              onClick={() => navigate(`/${path.MESSAGER}/1`)}
+            >
               Nhắn tin
             </Button>
           </div>
@@ -236,7 +256,7 @@ const DropMenu = ({ onOpenChange }) => {
           onClick={copyUrl}
         >
           <span>Sao chép liên kết</span>
-          <Link2 className="size-5" />
+          <Link2 className="size-5 -rotate-45" />
         </DropdownMenuItem>
         <DropdownMenuItem
           className="flex items-center justify-between gap-5 cursor-pointer py-3"
@@ -263,13 +283,13 @@ const DialogFullAvatar = ({ userData, open, onOpenChange }) => {
         onClick={onOpenChange}
       >
         <DialogHeader>
-          <DialogTitle></DialogTitle>
-          <DialogDescription></DialogDescription>
+          <DialogTitle />
+          <DialogDescription />
         </DialogHeader>
         <UserAvatar
           avatarUrl={userData?.avatarUrl}
           displayName={userData?.displayName}
-          size={250}
+          className="size-64"
         />
       </DialogContent>
     </Dialog>
@@ -347,7 +367,7 @@ const DialogFollowerFollowing = ({ open, onOpenChange, data }) => {
         <DialogTitle />
         <DialogDescription />
       </DialogHeader>
-      <DialogContent className="max-h-[70%] overflow-hidden hover:overflow-y-auto scrollbar-thin scrollbar-thumb-primary scrollbar-track-background">
+      <DialogContent className="max-h-[70%]">
         <Tabs defaultValue="follower">
           <TabsList className={"w-full flex gap-5"}>
             <TabsTrigger value="follower" className="flex-1">
@@ -357,28 +377,30 @@ const DialogFollowerFollowing = ({ open, onOpenChange, data }) => {
               Đang theo dõi
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="follower">
-            {data.follower.length > 0 ? (
-              data.follower.map((follow) => (
-                <UserPreview key={follow._id} data={follow} />
-              ))
-            ) : (
-              <span className="text-center w-full flex items-center justify-center p-5">
-                Không có người theo dõi
-              </span>
-            )}
-          </TabsContent>
-          <TabsContent value="following">
-            {data.following.length > 0 ? (
-              data.following.map((follow) => (
-                <UserPreview key={follow._id} data={follow} />
-              ))
-            ) : (
-              <span className="text-center w-full flex items-center justify-center p-5">
-                Không theo dõi ai
-              </span>
-            )}
-          </TabsContent>
+          <ScrollArea className="w-full h-[80%]">
+            <TabsContent value="follower">
+              {data.follower.length > 0 ? (
+                data.follower.map((follow) => (
+                  <UserPreview key={follow._id} data={follow} />
+                ))
+              ) : (
+                <span className="text-center w-full flex items-center justify-center p-5">
+                  Không có người theo dõi
+                </span>
+              )}
+            </TabsContent>
+            <TabsContent value="following">
+              {data.following.length > 0 ? (
+                data.following.map((follow) => (
+                  <UserPreview key={follow._id} data={follow} />
+                ))
+              ) : (
+                <span className="text-center w-full flex items-center justify-center p-5">
+                  Không theo dõi ai
+                </span>
+              )}
+            </TabsContent>
+          </ScrollArea>
         </Tabs>
       </DialogContent>
     </Dialog>

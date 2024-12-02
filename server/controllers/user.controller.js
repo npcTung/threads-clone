@@ -30,8 +30,8 @@ const getCurrent = asyncHandler(async (req, res) => {
 const getUsers = asyncHandler(async (req, res) => {
   const queries = { ...req.query };
   const { id } = req.user;
-  const excludefields = ["limit", "sort", "page", "fields"];
-  excludefields.forEach((el) => delete queries[el]);
+  const cursor = queries.cursor || null;
+  const pageSize = 10;
   let queryString = JSON.stringify(queries);
   queryString = queryString.replace(
     /\b(gte|gt|lt|lte)\b/g,
@@ -41,15 +41,14 @@ const getUsers = asyncHandler(async (req, res) => {
   const user = await User.findById(id);
   if (!user) throw new Error("Không tìm thấy người dùng.");
 
-  let blockIds;
-  if (user.blockedUsers) blockIds = user.blockedUsers;
-  blockIds.push(id);
+  const blockIds = user.blockedUsers ? [...user.blockedUsers, id] : [id];
 
   const formatedQueries = JSON.parse(queryString);
-
+  delete formatedQueries.cursor;
   formatedQueries.verified = true;
-  formatedQueries._id = { $nin: blockIds };
 
+  if (cursor) formatedQueries._id = { $lte: cursor, $nin: blockIds };
+  else formatedQueries._id = { $nin: blockIds };
   if (queries?.name)
     formatedQueries.name = { $regex: queries.name, $options: "i" };
   if (req.query.q) {
@@ -59,28 +58,32 @@ const getUsers = asyncHandler(async (req, res) => {
       { displayName: { $regex: req.query.q, $options: "i" } },
     ];
   }
-  let queryCommand = User.find(formatedQueries)
-    .select("-verified -password -role -otp -otp_expiry_time")
-    .populate([
-      {
-        path: "following",
-        select: "-verified -password -role -otp -otp_expiry_time",
-      },
-      {
-        path: "follower",
-        select: "-verified -password -role -otp -otp_expiry_time",
-      },
-    ])
-    .sort({ createdAt: -1 });
 
   try {
-    const response = await queryCommand.exec();
-    const counts = await User.find(formatedQueries).countDocuments();
-    return res.status(response.length ? 200 : 404).json({
-      success: !!response.length,
-      mes: !response.length ? "Không tìm thấy người dùng." : undefined,
-      counts: counts > 0 ? counts : undefined,
-      data: response.length ? response : undefined,
+    const queryCommand = await User.find(formatedQueries)
+      .select("-verified -password -role -otp -otp_expiry_time")
+      .populate([
+        {
+          path: "following",
+          select: "-verified -password -role -otp -otp_expiry_time",
+        },
+        {
+          path: "follower",
+          select: "-verified -password -role -otp -otp_expiry_time",
+        },
+      ])
+      .sort({ createdAt: -1 })
+      .limit(pageSize + 1)
+      .exec();
+
+    const nextCursor =
+      queryCommand.length > pageSize ? queryCommand[pageSize]._id : null;
+
+    return res.status(queryCommand.length > 0 ? 200 : 404).json({
+      success: !!queryCommand.length,
+      mes: !queryCommand.length ? "Không tìm thấy người dùng." : undefined,
+      data: queryCommand.length ? queryCommand.slice(0, pageSize) : undefined,
+      nextCursor,
     });
   } catch (err) {
     throw new Error(err.message);
@@ -221,7 +224,7 @@ const followUnfollow = asyncHandler(async (req, res) => {
     });
     return res.status(200).json({
       success: true,
-      mes: "Người dùng đã bỏ theo dõi thành công.",
+      mes: "Bỏ theo dõi người dùng thành công.",
       data: unfollow,
     });
   } else {
@@ -248,7 +251,7 @@ const followUnfollow = asyncHandler(async (req, res) => {
     });
     return res.status(200).json({
       success: true,
-      mes: "Người dùng đã theo dõi thành công.",
+      mes: "Theo dõi người dùng thành công.",
       data: follow,
     });
   }

@@ -59,7 +59,7 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, Please try again in an hour.",
 });
 
-app.use("/tawk", limiter);
+app.use("/api", limiter);
 app.use(express.urlencoded({ extended: true, limit: "5mb" }));
 app.use(mongosanitize());
 app.use(cookieParser());

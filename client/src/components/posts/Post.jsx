@@ -1,5 +1,5 @@
 import { cn, formatRelativeDate, formmatNumber } from "@/lib/utils";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   DialogCreateCommnet,
@@ -20,7 +20,7 @@ import path from "@/lib/path";
 import { formatDate } from "date-fns";
 import { vi } from "date-fns/locale";
 import useCurrentStore from "@/zustand/useCurrentStore";
-import usePostsStore from "@/zustand/usePostsStore";
+import { useLikePostMutation } from "./mutations";
 
 const { Dot, Heart, MessageSquare } = icons;
 
@@ -30,7 +30,7 @@ const Post = ({ className, data }) => {
   const [showCreateCommnet, setShowCreateCommnet] = useState(false);
   const [showEditPost, setShowEditPost] = useState(false);
   const { currentData } = useCurrentStore();
-  const { like_unlike } = usePostsStore();
+  const mutation = useLikePostMutation();
   const isLike = data.likes.includes(currentData._id);
 
   return (
@@ -137,7 +137,7 @@ const Post = ({ className, data }) => {
             <div className="flex gap-3 mt-1">
               <div
                 className="flex gap-1 items-center cursor-pointer rounded-full hover:bg-muted p-2"
-                onClick={() => like_unlike(data._id)}
+                onClick={() => mutation.mutate(data._id)}
               >
                 <Heart
                   className={cn(
@@ -152,7 +152,7 @@ const Post = ({ className, data }) => {
                 onClick={() => setShowCreateCommnet(true)}
               >
                 <MessageSquare className="size-5" />
-                <small>{formmatNumber(data?.comments?.length)}</small>
+                <small>{formmatNumber(data.totalCountComment || 0)}</small>
               </div>
             </div>
           </div>

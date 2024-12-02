@@ -1,5 +1,6 @@
 const Post = require("../models/post.model");
 const User = require("../models/user.model");
+const Comment = require("../models/comment.model");
 const Activity = require("../models/activity.model");
 const asyncHandler = require("express-async-handler");
 const cloudinary = require("cloudinary").v2;
@@ -7,6 +8,12 @@ const cloudinary = require("cloudinary").v2;
 const createPost = asyncHandler(async (req, res) => {
   const { postedBy, context } = req.body;
   const { id } = req.user;
+  const postedByPopulate = [
+    {
+      path: "postedBy",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+  ];
 
   if (!postedBy) throw new Error("Người đăng là bắt buộc.");
 
@@ -27,16 +34,7 @@ const createPost = asyncHandler(async (req, res) => {
   const newPost = await Post.create({ postedBy, context });
   let getPost;
   if (newPost)
-    getPost = await Post.findById(newPost._id).populate([
-      {
-        path: "postedBy",
-        select: "-verified -password -role -otp -otp_expiry_time",
-      },
-      {
-        path: "comments.userId",
-        select: "-verified -password -role -otp -otp_expiry_time",
-      },
-    ]);
+    getPost = await Post.findById(newPost._id).populate(postedByPopulate);
 
   return res.status(newPost ? 200 : 500).json({
     success: newPost ? true : false,
@@ -50,6 +48,12 @@ const createPost = asyncHandler(async (req, res) => {
 const uploadFiles = asyncHandler(async (req, res) => {
   const { postId } = req.params;
   const { id } = req.user;
+  const postedByPopulate = [
+    {
+      path: "postedBy",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+  ];
 
   const post = await Post.findById(postId);
   if (!post) {
@@ -83,13 +87,7 @@ const uploadFiles = asyncHandler(async (req, res) => {
         new: true,
         validateModifiedOnly: true,
       }
-    ).populate([
-      {
-        path: "postedBy",
-        select:
-          "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-      },
-    ]);
+    ).populate(postedByPopulate);
 
     if (!uploadFilesPost) {
       cloudinary.api.delete_resources(
@@ -119,16 +117,16 @@ const uploadFiles = asyncHandler(async (req, res) => {
 const updatePost = asyncHandler(async (req, res) => {
   const { context } = req.body;
   const { postId } = req.params;
+  const postedByPopulate = [
+    {
+      path: "postedBy",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+  ];
 
   if (!postId) throw new Error("Mã bài đăng là bắt buộc.");
 
-  const post = await Post.findById(postId).populate([
-    {
-      path: "postedBy",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-  ]);
+  const post = await Post.findById(postId).populate(postedByPopulate);
   if (!post)
     return res
       .status(404)
@@ -179,22 +177,26 @@ const deletePost = asyncHandler(async (req, res) => {
     cloudinary.api.delete_resources(post.filenames, { resource_type: "video" });
   }
 
-  return res.status(200).json({ success: true, mes: "Đã xóa bài đăng." });
+  return res.status(200).json({
+    success: deletedPost ? true : false,
+    mes: deletedPost ? "Đã xóa bài đăng." : undefined,
+    data: deletedPost ? deletedPost : undefined,
+  });
 });
 
 const likeUnlikePost = asyncHandler(async (req, res) => {
   const { postId } = req.params;
   const { id } = req.user;
+  const postedByPopulate = [
+    {
+      path: "postedBy",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+  ];
 
   if (!postId) throw new Error("Mã bài đăng là bắt buộc.");
 
-  const post = await Post.findById(postId).populate([
-    {
-      path: "postedBy",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-  ]);
+  const post = await Post.findById(postId).populate(postedByPopulate);
   if (!post)
     return res
       .status(404)
@@ -208,13 +210,7 @@ const likeUnlikePost = asyncHandler(async (req, res) => {
       postId,
       { $pull: { likes: id } },
       { new: true, validateModifiedOnly: true }
-    ).populate([
-      {
-        path: "postedBy",
-        select:
-          "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-      },
-    ]);
+    ).populate(postedByPopulate);
     if (unlike) {
       await User.findByIdAndUpdate(id, { $pull: { likedPosts: postId } });
       await Activity.deleteMany({
@@ -237,12 +233,13 @@ const likeUnlikePost = asyncHandler(async (req, res) => {
     const like = await post.save({ new: true, validateModifiedOnly: true });
     if (like) {
       await User.findByIdAndUpdate(id, { $push: { likedPosts: postId } });
-      await Activity.create({
-        isSuerId: id,
-        recipientId: like.postedBy._id,
-        postId,
-        type: "Like",
-      });
+      if (like.postedBy._id.toString() !== id)
+        await Activity.create({
+          isSuerId: id,
+          recipientId: like.postedBy._id,
+          postId,
+          type: "Like",
+        });
     }
     return res.status(like ? 200 : 404).json({
       success: !!like,
@@ -252,309 +249,70 @@ const likeUnlikePost = asyncHandler(async (req, res) => {
   }
 });
 
-const createCommentPost = asyncHandler(async (req, res) => {
-  const { context } = req.body;
-  const { postId } = req.params;
-  const { id } = req.user;
-
-  if (!context) throw new Error("Cần phải có ngữ cảnh.");
-
-  const post = await Post.findById(postId);
-  if (!post)
-    return res
-      .status(404)
-      .json({ success: false, mes: "Bài viết không tìm thấy." });
-
-  const createdCommnet = await Post.findByIdAndUpdate(
-    postId,
-    {
-      $push: { comments: { context, userId: id } },
-    },
-    { new: true, validateModifiedOnly: true }
-  ).populate([
-    {
-      path: "postedBy",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-    {
-      path: "comments.userId",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-  ]);
-
-  if (createdCommnet && post.postedBy.toString() !== id)
-    await Activity.create({
-      isSuerId: id,
-      recipientId: createdCommnet.postedBy._id,
-      commentId:
-        createdCommnet.comments[createdCommnet.comments.length - 1]._id,
-      postId,
-      type: "Comment",
-    });
-
-  res.status(200).json({
-    success: true,
-    mes: "Đã bình luận thành công.",
-    data: createdCommnet,
-  });
-});
-
-const updateCommentPost = asyncHandler(async (req, res) => {
-  const { context } = req.body;
-  const { postId, commentId } = req.params;
-  const { id } = req.user;
-
-  if (!context)
-    throw new Error("Cần phải có ID bài đăng, ngữ cảnh và ID bình luận.");
-
-  const post = await Post.findById(postId);
-  if (!post)
-    return res
-      .status(404)
-      .json({ success: false, mes: "Bài viết không tìm thấy." });
-
-  const updatedComment = await Post.findOneAndUpdate(
-    {
-      _id: postId,
-      "comments._id": commentId,
-      "comments.userId": id,
-    },
-    { $set: { "comments.$.context": context } },
-    { new: true, validateModifiedOnly: true }
-  ).populate([
-    {
-      path: "postedBy",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-    {
-      path: "comments.userId",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-  ]);
-
-  return res.status(200).json({
-    success: true,
-    mes: "Bình luận đã được cập nhật thành công.",
-    data: updatedComment,
-  });
-});
-
-const liekUnlikeCommentPost = asyncHandler(async (req, res) => {
-  const { postId, commentId } = req.params;
-  const { id } = req.user;
-
-  const post = await Post.findById(postId).populate([
-    {
-      path: "postedBy",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-    {
-      path: "comments.userId",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-  ]);
-  if (!post)
-    return res
-      .status(404)
-      .json({ success: false, mes: "Bài viết không tìm thấy." });
-
-  const userLikedComment = post.comments
-    .find((comment) => comment._id.toString() === commentId)
-    .likes.includes(id);
-
-  if (userLikedComment) {
-    // unlike comment
-    const unlikeComment = await Post.findOneAndUpdate(
-      {
-        _id: postId,
-        "comments._id": commentId,
-        "comments.likes": id,
-      },
-      { $pull: { "comments.$.likes": id } },
-      { new: true, validateModifiedOnly: true }
-    ).populate([
-      {
-        path: "postedBy",
-        select:
-          "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-      },
-      {
-        path: "comments.userId",
-        select:
-          "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-      },
-    ]);
-
-    if (unlikeComment)
-      await Activity.deleteMany({
-        isSuerId: id,
-        recipientId: unlikeComment.postedBy._id,
-        commentId,
-        postId,
-        type: "Like_Comment",
-      });
-
-    return res.status(unlikeComment ? 200 : 404).json({
-      success: !!unlikeComment,
-      mes: unlikeComment
-        ? "Hủy like bình luận thành công."
-        : "Hủy like bình luận thất bại.",
-      data: unlikeComment ? unlikeComment : undefined,
-    });
-  } else {
-    // like comment
-    post.comments
-      .find((comment) => comment._id.toString() === commentId)
-      .likes.push(id);
-    const likeComment = await post.save({
-      new: true,
-      validateModifiedOnly: true,
-    });
-
-    if (likeComment)
-      await Activity.create({
-        isSuerId: id,
-        recipientId: likeComment.postedBy._id,
-        commentId,
-        postId,
-        type: "Like_Comment",
-      });
-
-    return res.status(likeComment ? 200 : 404).json({
-      success: !!likeComment,
-      mes: likeComment
-        ? "Like bình luận thành công."
-        : "Like bình luận thất bại.",
-      data: likeComment ? likeComment : undefined,
-    });
-  }
-});
-
-const deleteCommentPost = asyncHandler(async (req, res) => {
-  const { postId, commentId } = req.params;
-  const { id } = req.user;
-
-  if (!postId || !commentId)
-    throw new Error("Cần phải có ID bài đăng và ID bình luận.");
-
-  const post = await Post.findById(postId);
-  if (!post)
-    return res
-      .status(404)
-      .json({ success: false, mes: "Bài viết không tìm thấy." });
-
-  const userComment = post.comments
-    .map((comment) => comment.userId.toString())
-    .includes(id);
-  if (!userComment)
-    return res.status(401).json({
-      success: false,
-      mes: "Không được phép xóa bài bình luận.",
-    });
-
-  const delete_comment = await Post.findOneAndUpdate(
-    {
-      _id: postId,
-      "comments.userId": id,
-      "comments._id": commentId,
-    },
-    { $pull: { comments: { _id: commentId } } },
-    { new: true, validateModifiedOnly: true }
-  ).populate([
-    {
-      path: "postedBy",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-    {
-      path: "comments.userId",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-  ]);
-
-  if (delete_comment) {
-    await Activity.deleteMany({
-      isSuerId: id,
-      recipientId: delete_comment.postedBy._id,
-      commentId,
-      postId,
-      type: "Like_Comment",
-    });
-    await Activity.deleteMany({
-      isSuerId: id,
-      recipientId: delete_comment.postedBy._id,
-      commentId,
-      postId,
-      type: "Comment",
-    });
-  }
-
-  return res.status(200).json({
-    success: true,
-    mes: "Bình luận đã được xóa thành công.",
-    data: delete_comment,
-  });
-});
-
 const getFeedPosts = asyncHandler(async (req, res) => {
   const { id } = req.user;
   const queries = { ...req.query };
+  const cursor = queries.cursor || null;
   const pageSize = 10;
+  const postedByPopulate = [
+    {
+      path: "postedBy",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+  ];
 
   const user = await User.findById(id);
   if (!user)
-    return res.status(404).json({ error: "Không tìm thấy người dùng." });
+    return res
+      .status(401)
+      .json({ success: false, mes: "Không tìm thấy người dùng." });
 
-  const objectQueries = {};
-  objectQueries.postedBy = { $nin: user.blockedUsers };
-  if (queries.cursor) objectQueries._id = { $lt: queries.cursor };
+  const objectQueries = { postedBy: { $nin: user.blockedUsers } };
   if (queries.follower) objectQueries.postedBy = { $in: user.following };
-  else if (queries.likes) objectQueries._id = { $in: user.likedPosts };
-  else if (queries.bookmarks) objectQueries._id = { $in: user.bookmarkedPosts };
+  else if (queries.likes) {
+    if (cursor) objectQueries._id = { $in: user.likedPosts, $lte: cursor };
+    else objectQueries._id = { $in: user.likedPosts };
+  } else if (queries.bookmarks) {
+    if (cursor) objectQueries._id = { $in: user.bookmarkedPosts, $lte: cursor };
+    else objectQueries._id = { $in: user.bookmarkedPosts };
+  } else if (cursor) objectQueries._id = { $lte: cursor };
 
   const posts = await Post.find(objectQueries)
-    .populate([
-      {
-        path: "postedBy",
-        select:
-          "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-      },
-    ])
-    .sort({ createdAt: -1 });
-  // .limit(pageSize + 1);
+    .populate(postedByPopulate)
+    .sort({ createdAt: -1 })
+    .limit(pageSize + 1)
+    .exec();
+
+  const dataPosts = [];
+  for (let post of posts) {
+    const totalCountComment = await Comment.countDocuments({
+      postId: post._id,
+    });
+    dataPosts.push({ ...post._doc, totalCountComment });
+  }
 
   const nextCursor = posts.length > pageSize ? posts[pageSize]._id : null;
-  const count = await Post.find(objectQueries).countDocuments();
 
   res.status(posts.length ? 200 : 404).json({
     success: posts.length ? true : false,
     mes: !posts.length ? "Bài viết không tìm thấy." : undefined,
-    data: posts.length ? posts : undefined,
-    count,
+    data: posts.length ? dataPosts.slice(0, pageSize) : undefined,
     nextCursor,
   });
 });
 
 const getPost = asyncHandler(async (req, res) => {
   const { postId } = req.params;
-
-  const post = await Post.findById(postId).populate([
+  const postedByPopulate = [
     {
       path: "postedBy",
       select: "-verified -password -role -otp -otp_expiry_time",
     },
-    {
-      path: "comments.userId",
-      select: "-verified -password -role -otp -otp_expiry_time",
-    },
-  ]);
+  ];
+
+  const post = await Post.findById(postId).populate(postedByPopulate);
+
+  const totalCountComment = await Comment.countDocuments({ postId });
 
   if (!post)
     return res
@@ -563,13 +321,21 @@ const getPost = asyncHandler(async (req, res) => {
 
   return res.status(200).json({
     success: true,
-    data: post,
+    data: { ...post._doc, totalCountComment },
   });
 });
 
 const getUserPosts = asyncHandler(async (req, res) => {
   const { userName } = req.params;
   const { id } = req.user;
+  const cursor = req.query.cursor || null;
+  const pageSize = 10;
+  const postedByPopulate = [
+    {
+      path: "postedBy",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
+  ];
 
   const userToModify = await User.findOne({ userName: userName });
   const currentUser = await User.findById(id);
@@ -577,20 +343,30 @@ const getUserPosts = asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "Không tìm thấy người dùng." });
   if (currentUser.blockedUsers.includes(userToModify._id))
     throw new Error("Người dùng nãy đã bị chặn.");
+  const objectQueries = cursor ? { _id: { $lte: cursor } } : {};
+  objectQueries.postedBy = userToModify._id;
 
-  const posts = await Post.find({ postedBy: userToModify._id })
-    .populate([
-      {
-        path: "postedBy",
-        select: "-verified -password -role -otp -otp_expiry_time",
-      },
-    ])
-    .sort({ createdAt: -1 });
+  const posts = await Post.find(objectQueries)
+    .populate(postedByPopulate)
+    .sort({ createdAt: -1 })
+    .limit(pageSize + 1)
+    .exec();
+
+  const dataPosts = [];
+  for (let post of posts) {
+    const totalCountComment = await Comment.countDocuments({
+      postId: post._id,
+    });
+    dataPosts.push({ ...post._doc, totalCountComment });
+  }
+
+  const nextCursor = posts.length > pageSize ? posts[pageSize]._id : null;
 
   res.status(posts.length ? 200 : 404).json({
     success: posts.length ? true : false,
     mes: !posts.length ? "Bài viết không tìm thấy." : undefined,
-    data: posts.length ? posts : undefined,
+    data: posts.length ? dataPosts.slice(0, pageSize) : undefined,
+    nextCursor,
   });
 });
 
@@ -600,11 +376,7 @@ module.exports = {
   updatePost,
   deletePost,
   likeUnlikePost,
-  createCommentPost,
-  updateCommentPost,
-  deleteCommentPost,
   getFeedPosts,
   getPost,
   getUserPosts,
-  liekUnlikeCommentPost,
 };

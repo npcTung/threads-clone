@@ -10,11 +10,14 @@ import {
   DialogTitle,
 } from "../ui";
 import PropTypes from "prop-types";
-import usePostsStore from "@/zustand/usePostsStore";
 import { LoadingButton } from "..";
+import { useDeletePostMutation } from "./mutations";
+import { useNavigate } from "react-router-dom";
+import path from "@/lib/path";
 
 const DialogDeletePost = ({ open, onOpenChange, postId }) => {
-  const { deletePost, isCreateLoading } = usePostsStore();
+  const mutation = useDeletePostMutation();
+  const navigate = useNavigate();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -29,9 +32,16 @@ const DialogDeletePost = ({ open, onOpenChange, postId }) => {
             <Button variant={"outline"}>Hủy</Button>
           </DialogClose>
           <LoadingButton
-            loading={isCreateLoading}
+            loading={mutation.isPending}
             variant="destructive"
-            onClick={() => deletePost(postId)}
+            onClick={() =>
+              mutation.mutate(postId, {
+                onSuccess: () => {
+                  onOpenChange(false);
+                  navigate(path.HOME);
+                },
+              })
+            }
           >
             Xóa
           </LoadingButton>

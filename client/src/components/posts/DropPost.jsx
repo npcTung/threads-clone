@@ -9,7 +9,7 @@ import {
 } from "../ui";
 import icons from "@/lib/icons";
 import { toast } from "sonner";
-import useCurrentStore from "@/zustand/useCurrentStore";
+import { useBookmarkPostUser } from "@/hooks/useCurrentData";
 
 const { Ellipsis, Bookmark, Link2, SquarePen, Trash2, BookmarkCheck } = icons;
 
@@ -20,7 +20,7 @@ const DropPost = ({
   setEditPost,
   isCheckBookMark,
 }) => {
-  const { bookmark_unbookmark } = useCurrentStore();
+  const bookmark = useBookmarkPostUser();
 
   const copyUrl = () => {
     const url = `${window.location.origin}/${path.POSTS}/${postId}`;
@@ -37,7 +37,7 @@ const DropPost = ({
       <DropdownMenuContent side="rigth" align="start">
         <DropdownMenuItem
           className="flex items-center justify-between gap-5 cursor-pointer"
-          onClick={() => bookmark_unbookmark(postId)}
+          onClick={() => bookmark.bookmarkPostUser(postId)}
         >
           <span>{isCheckBookMark ? "Đã lưu" : "Lưu"}</span>
           {isCheckBookMark ? (
@@ -52,7 +52,7 @@ const DropPost = ({
           onClick={copyUrl}
         >
           <span>Sao chép liên kết</span>
-          <Link2 className="size-5" />
+          <Link2 className="size-5 -rotate-45" />
         </DropdownMenuItem>
         {isEdit && (
           <>

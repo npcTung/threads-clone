@@ -12,27 +12,6 @@ router.put(
   postController.uploadFiles
 );
 
-router.post(
-  "/create-comment/:postId",
-  verifyAccessToken,
-  postController.createCommentPost
-);
-router.put(
-  "/update-comment/:postId/:commentId",
-  verifyAccessToken,
-  postController.updateCommentPost
-);
-router.delete(
-  "/delete-comment/:postId/:commentId",
-  verifyAccessToken,
-  postController.deleteCommentPost
-);
-router.put(
-  "/like-unlike-comment/:postId/:commentId",
-  verifyAccessToken,
-  postController.liekUnlikeCommentPost
-);
-
 router.put(
   "/like-unlike/:postId",
   verifyAccessToken,

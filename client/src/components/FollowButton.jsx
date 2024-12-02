@@ -1,15 +1,16 @@
 import React from "react";
 import { Button } from "./ui";
 import PropTypes from "prop-types";
-import useCurrentStore from "@/zustand/useCurrentStore";
+import { useFollowUser } from "@/hooks/useCurrentData";
 
 const FollowButton = ({ className, isFollow, userId }) => {
-  const { followUser } = useCurrentStore();
+  const followButton = useFollowUser();
+
   return (
     <Button
       variant={isFollow ? "outline" : "default"}
       className={className}
-      onClick={() => followUser(userId)}
+      onClick={() => followButton.followUser(userId)}
     >
       {isFollow ? "Đang theo dõi" : "Theo dõi"}
     </Button>

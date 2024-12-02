@@ -20,6 +20,7 @@ const path = {
   FORGOT_PASSWORD: "forgot_password",
   // MESSAGER
   MESSAGER: "messager",
+  MESSAGER__ID: "messager/:messager_id",
 };
 
 export default path;
