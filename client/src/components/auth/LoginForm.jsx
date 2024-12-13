@@ -29,7 +29,8 @@ const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSendEmail, setIsSendEmail] = useState(false);
   const [showFinalRegister, setShowFinalRegister] = useState(false);
-  const { setGoogleData, setEmail, setIsLoggedIn } = useCurrentStore();
+  const { setGoogleData, setEmail, setIsLoggedIn, setToken } =
+    useCurrentStore();
   const navigate = useNavigate();
 
   const form = useForm({
@@ -47,6 +48,7 @@ const LoginForm = () => {
       if (response.isVerified) {
         const loginUser = await apis.login(data);
         if (loginUser.success) {
+          setToken(loginUser.token);
           setIsLoggedIn(true);
           toast.success(loginUser.mes);
           navigate(path.HOME);
@@ -80,6 +82,7 @@ const LoginForm = () => {
 
         if (user.hasUser) {
           toast.success("Đăng nhập thành công.");
+          setToken(user.token);
           setIsLoggedIn(true);
           setGoogleData(null);
           navigate(path.HOME);
@@ -186,7 +189,8 @@ const GoogleIcon = ({ size, className }) => {
 };
 
 const DialogSetupPassword = ({ open, onOpenChange }) => {
-  const { googleData, setGoogleData, setIsLoggedIn } = useCurrentStore();
+  const { googleData, setGoogleData, setIsLoggedIn, setToken } =
+    useCurrentStore();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -207,6 +211,7 @@ const DialogSetupPassword = ({ open, onOpenChange }) => {
       const response = await apis.loginWithGoogle(payload);
       if (response.success) {
         toast.success(response.mes);
+        setToken(response.token);
         setIsLoggedIn(true);
         setGoogleData(null);
         onOpenChange(false);

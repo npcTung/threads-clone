@@ -65,6 +65,8 @@ import {
   Play,
   Pause,
   RotateCcw,
+  TriangleAlert,
+  Settings,
 } from "lucide-react";
 
 const icons = {
@@ -134,6 +136,8 @@ const icons = {
   Play,
   Pause,
   RotateCcw,
+  TriangleAlert,
+  Settings,
 };
 
 export default icons;

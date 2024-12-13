@@ -1,13 +1,21 @@
 import path from "@/lib/path";
 import React, { memo } from "react";
-import { DropMenu, useTheme } from ".";
+import { DropMenu } from ".";
 import { Link } from "react-router-dom";
+import useConversationStore from "@/zustand/useConversationStore";
 
 const Navbar = () => {
+  const { setConversation, conversation } = useConversationStore();
+
   return (
     <header className="sticky top-0 z-10 bg-muted shadow-md">
       <div className="mx-auto max-sm:flex max-w-7xl items-center hidden justify-center gap-5 px-5 py-3">
-        <div className="flex justify-center w-full">
+        <div
+          className="flex justify-center w-full"
+          onClick={() => {
+            conversation && setConversation(null);
+          }}
+        >
           <Link to={path.HOME}>
             <IconLogo size={24} />
           </Link>
@@ -21,13 +29,11 @@ const Navbar = () => {
 export default memo(Navbar);
 
 const IconLogo = ({ size }) => {
-  const { theme } = useTheme();
-
   return (
     <svg
       aria-label="Threads"
       className="x1ypdohk x13dflua x11xpdln xk4oym4 xus2keu"
-      fill={theme === "dark" ? "#ffffff" : "var(--primary)"}
+      fill={"var(--primary-foreground)"}
       role="img"
       viewBox="0 0 192 192"
       height={size || 36}

@@ -2,17 +2,23 @@ import useCurrentStore from "@/zustand/useCurrentStore";
 import * as apis from "@/apis";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import path from "@/lib/path";
 
 const useCurrentData = () => {
-  const { setCurrentData, setIsLoggedIn } = useCurrentStore();
+  const { setCurrentData, setIsLoggedIn, setIsLoading } = useCurrentStore();
 
   const getCurrentData = async () => {
+    setIsLoading(true);
     try {
       const response = await apis.getCurrent();
       if (response.success) setCurrentData(response.data);
+      else setIsLoggedIn(false);
     } catch (error) {
       setIsLoggedIn(false);
       console.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -34,17 +40,18 @@ export const useUpdateUserProfile = () => {
       if (updatedUser.success) {
         setCurrentData(updatedUser.data);
         toast.success(updatedUser.mes);
-      }
-      if (avatar) {
-        const formData = new FormData();
-        formData.append("avatar", avatar);
-        const updatedAvatar = await apis.updateAvatar(formData);
-        if (updatedAvatar.success) {
-          setCurrentData(updatedAvatar.data);
-          toast.success(updatedAvatar.mes);
+
+        if (avatar) {
+          const formData = new FormData();
+          formData.append("avatar", avatar);
+          const updatedAvatar = await apis.updateAvatar(formData);
+          if (updatedAvatar.success) {
+            setCurrentData(updatedAvatar.data);
+            toast.success(updatedAvatar.mes);
+          }
         }
+        setIsSuccess(true);
       }
-      setIsSuccess(true);
     } catch (error) {
       setIsSuccess(false);
       console.error(error.message);
@@ -90,4 +97,24 @@ export const useBookmarkPostUser = () => {
   };
 
   return { bookmarkPostUser };
+};
+
+export const useBlockAccount = () => {
+  const { setCurrentData } = useCurrentStore();
+  const navigate = useNavigate();
+
+  const blockAccount = async (uid) => {
+    try {
+      const blockUnblock = await apis.blockAccount(uid);
+      if (blockUnblock.success) {
+        setCurrentData(blockUnblock.data);
+        toast.success(blockUnblock.mes);
+        navigate(`/${path.NOT_FOUND}`);
+      }
+    } catch (error) {
+      console.error(error.message);
+    }
+  };
+
+  return { blockAccount };
 };

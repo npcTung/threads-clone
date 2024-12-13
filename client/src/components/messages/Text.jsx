@@ -72,11 +72,11 @@ const Text = ({
           className={cn(
             "flex flex-row items-center space-x-2",
             incoming && "justify-end",
-            read_receipt === "read" && "text-muted-foreground"
+            read_receipt && "text-muted-foreground"
           )}
         >
           <div className="flex flex-row items-center space-x-1 opacity-50">
-            {read_receipt !== "sent" ? (
+            {read_receipt ? (
               <CheckCheck className="size-4" />
             ) : (
               <Check className="size-4" />

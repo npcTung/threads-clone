@@ -1,6 +1,5 @@
 const express = require("express");
 const morgan = require("morgan");
-require("dotenv").config();
 const rateLimit = require("express-rate-limit");
 const helmet = require("helmet");
 const mongosanitize = require("express-mongo-sanitize");

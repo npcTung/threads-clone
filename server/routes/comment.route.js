@@ -9,7 +9,6 @@ router.put(
 );
 router.post("/:postId", [verifyAccessToken], commentController.createComment);
 router.get("/:postId", [verifyAccessToken], commentController.getAllComments);
-router.put("/:cid", [verifyAccessToken], commentController.updateComment);
 router.delete("/:cid", [verifyAccessToken], commentController.deleteComment);
 
 module.exports = router;

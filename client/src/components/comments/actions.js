@@ -22,15 +22,6 @@ export const getAllCommentsPost = async (postId, cursor) => {
     console.error(error.message);
   }
 };
-// update comment
-export const updateComment = async (cid, data) => {
-  try {
-    const response = await apis.updateComment(cid, data);
-    if (response.success) return response;
-  } catch (error) {
-    console.error(error.message);
-  }
-};
 // delete comment
 export const deleteComment = async (cid) => {
   try {

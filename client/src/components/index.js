@@ -16,7 +16,7 @@ export * from "./forms";
 export * from "./chats";
 // messages
 export * from "./messages";
-//////////////////////////////////////////////////////////////////////
+// activity
 export { default as NotFound } from "./NotFound";
 export { default as Navbar } from "./Navbar";
 export { default as DropMenu } from "./DropMenu";
@@ -36,6 +36,7 @@ export { default as Giphy } from "./Giphy";
 export { default as VoidRecorder } from "./VoidRecorder";
 export { default as MediaPicker } from "./MediaPicker";
 export { default as DocumentPicker } from "./DocumentPicker";
-export { default as FileDropZone } from "./FileDropZone";
+export { default as FileDrop } from "./FileDrop";
 export { default as Waveform } from "./Waveform";
 export { default as AudioVideoRoom } from "./AudioVideoRoom";
+export { default as DialogSetting } from "./DialogSetting";

@@ -2,6 +2,7 @@ const Comment = require("../models/comment.model");
 const Post = require("../models/post.model");
 const User = require("../models/user.model");
 const Activity = require("../models/activity.model");
+const ActivityLog = require("../models/activity-log.model");
 const asyncHandler = require("express-async-handler");
 
 const createComment = asyncHandler(async (req, res) => {
@@ -40,6 +41,12 @@ const createComment = asyncHandler(async (req, res) => {
     const commented = await Comment.findById(comment._id).populate(
       userPopulate
     );
+    await ActivityLog.create({
+      userId: id,
+      postId: postId,
+      commentId: commented._id,
+      type: "Comment",
+    });
     if (post.postedBy.toString() !== id)
       await Activity.create({
         isSuerId: user._id,
@@ -48,6 +55,7 @@ const createComment = asyncHandler(async (req, res) => {
         commentId: commented._id,
         type: "Comment",
       });
+
     return res.status(200).json({
       success: true,
       mes: "Tạo bình luận thành công.",
@@ -103,42 +111,6 @@ const getAllComments = asyncHandler(async (req, res) => {
   });
 });
 
-const updateComment = asyncHandler(async (req, res) => {
-  const { cid } = req.params;
-  const { context } = req.body;
-  const { id } = req.user;
-
-  const userPopulate = [
-    {
-      path: "userId",
-      select:
-        "-verified -password -role -otp -otp_expiry_time -filename -updatedAt",
-    },
-  ];
-
-  const user = await User.findById(id);
-  if (!user)
-    return res
-      .status(401)
-      .json({ success: false, mes: "Không tìm thấy người dùng." });
-
-  if (!context) throw new Error("Cần phải có ngữ cảnh.");
-
-  const updatedComment = await Comment.findByIdAndUpdate(
-    cid,
-    { context },
-    { new: true, validateModifiedOnly: true }
-  ).populate(userPopulate);
-
-  return res.status(updatedComment ? 200 : 404).json({
-    success: !!updatedComment,
-    mes: updatedComment
-      ? "Cập nhật bình luận thành công."
-      : "Không tìm thấy bình luận.",
-    data: updatedComment ? updatedComment : undefined,
-  });
-});
-
 const deleteComment = asyncHandler(async (req, res) => {
   const { cid } = req.params;
   const { id } = req.user;
@@ -150,13 +122,21 @@ const deleteComment = asyncHandler(async (req, res) => {
       .json({ success: false, mes: "Không tìm thấy người dùng." });
 
   const deletedComment = await Comment.findByIdAndDelete(cid);
-  if (deletedComment)
+
+  if (deletedComment) {
     await Activity.deleteMany({
       commentId: cid,
       isSuerId: user._id,
       recipientId: deletedComment.userId._id,
       postId: deletedComment.postId,
     });
+    await ActivityLog.deleteMany({
+      commentId: cid,
+      userId: id,
+      postId: deletedComment.postId,
+      type: "Comment",
+    });
+  }
 
   return res.status(deletedComment ? 200 : 404).json({
     success: !!deletedComment,
@@ -180,6 +160,7 @@ const likeUnlikeComment = asyncHandler(async (req, res) => {
   ];
 
   const user = await User.findById(id);
+
   if (!user)
     return res
       .status(401)
@@ -200,7 +181,7 @@ const likeUnlikeComment = asyncHandler(async (req, res) => {
       { $pull: { likes: id } },
       { new: true, validateModifiedOnly: true }
     ).populate(userPopulate);
-    if (unlike)
+    if (unlike) {
       await Activity.deleteOne({
         commentId: cid,
         isSuerId: user._id,
@@ -208,6 +189,14 @@ const likeUnlikeComment = asyncHandler(async (req, res) => {
         postId: unlike.postId,
         type: "Like_Comment",
       });
+      await ActivityLog.deleteOne({
+        commentId: cid,
+        userId: id,
+        postId: unlike.postId,
+        type: "Like_Comment",
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: unlike,
@@ -219,14 +208,23 @@ const likeUnlikeComment = asyncHandler(async (req, res) => {
       { $push: { likes: id } },
       { new: true, validateModifiedOnly: true }
     ).populate(userPopulate);
-    if (like && like.userId._id.toString() !== id)
-      await Activity.create({
-        isSuerId: user._id,
-        recipientId: like.userId._id,
+    if (like) {
+      await ActivityLog.create({
+        userId: id,
         postId: like.postId,
-        commentId: like._id,
+        commentId: cid,
         type: "Like_Comment",
       });
+      if (like.userId._id.toString() !== id)
+        await Activity.create({
+          isSuerId: user._id,
+          recipientId: like.userId._id,
+          postId: like.postId,
+          commentId: like._id,
+          type: "Like_Comment",
+        });
+    }
+
     return res.status(200).json({
       success: true,
       data: like,
@@ -237,7 +235,6 @@ const likeUnlikeComment = asyncHandler(async (req, res) => {
 module.exports = {
   createComment,
   getAllComments,
-  updateComment,
   deleteComment,
   likeUnlikeComment,
 };

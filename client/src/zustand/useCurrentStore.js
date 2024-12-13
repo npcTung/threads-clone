@@ -9,6 +9,8 @@ const useCurrentStore = create(
       email: null,
       isLoggedIn: false,
       isLoading: false,
+      token: null,
+      setToken: (token) => set({ token }),
       setIsLoggedIn: (isLoggedIn) => set({ isLoggedIn }),
       setEmail: (email) => set({ email }),
       setCurrentData: (currentData) => set({ currentData }),
@@ -21,6 +23,7 @@ const useCurrentStore = create(
           email: null,
           isLoggedIn: false,
           isLoading: false,
+          token: null,
         }),
     }),
     {
@@ -29,7 +32,10 @@ const useCurrentStore = create(
       partialize: (state) =>
         Object.fromEntries(
           Object.entries(state).filter(
-            (el) => el[0] === "currentData" || el[0] === "isLoggedIn"
+            (el) =>
+              el[0] === "currentData" ||
+              el[0] === "isLoggedIn" ||
+              el[0] === "token"
           )
         ),
     }

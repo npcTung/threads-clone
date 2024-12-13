@@ -8,7 +8,7 @@ const UserAvatar = ({
   displayName = "CN",
   className,
   handelOnclick,
-  isOnline,
+  status,
 }) => {
   return (
     <div className="relative inline-block w-fit">
@@ -22,12 +22,12 @@ const UserAvatar = ({
         <AvatarImage src={avatarUrl} alt={displayName} />
         <AvatarFallback>
           {displayName
-            .split(/[\s.\W]+/)
+            .split(/[-_.\s]+/)
             .map((part) => part[0])
             .join("")}
         </AvatarFallback>
       </Avatar>
-      {isOnline && (
+      {status === "Online" && (
         <span
           className="absolute bottom-0 right-1 size-3 bg-green-500 border border-white rounded-full"
           title="Online"
@@ -45,5 +45,5 @@ UserAvatar.prototype = {
   size: PropTypes.number,
   className: PropTypes.string,
   handelOnclick: PropTypes.func,
-  isOnline: PropTypes.bool,
+  isOnline: PropTypes.string,
 };

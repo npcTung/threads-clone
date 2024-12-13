@@ -1,6 +1,5 @@
 import React, { memo, useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
-import AudioFile from "@/assets/audio/audio.mp3";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui";
 import icons from "@/lib/icons";
@@ -8,7 +7,7 @@ import icons from "@/lib/icons";
 const { Play, Pause } = icons;
 
 const Waveform = (props) => {
-  const { incoming } = props;
+  const { incoming, audioUrl } = props;
   const waveformRef = useRef();
   const [wavesurfer, setWavesurfer] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -39,7 +38,7 @@ const Waveform = (props) => {
         container: waveformRef.current,
         waveColor: "#3c50e0",
         progressColor: "#80caee",
-        url: AudioFile,
+        url: audioUrl,
         renderFunction: (channels, ctx) => {
           const { width, height } = ctx.canvas;
           const scale = channels[0].length / width;
@@ -107,7 +106,7 @@ const Waveform = (props) => {
         variant="outline"
         size="icon"
         onClick={handlePlayPause}
-        className="bg-primary text-primary-foreground rounded-full size-20"
+        className="bg-primary text-primary-foreground rounded-full size-14"
       >
         {isPlaying ? (
           <Pause className="size-8 fill-inherit" />

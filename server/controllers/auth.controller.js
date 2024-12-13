@@ -107,11 +107,12 @@ const verifyOTP = asyncHandler(async (req, res) => {
   user.otp_expiry_time = undefined;
   await user.save();
 
-  generateAccessToken(user._id, user.role, res);
+  const token = generateAccessToken(user._id, user.role, res);
 
   return res.status(200).json({
     success: true,
     mes: "Email đã được xác minh thành công.",
+    token,
   });
 });
 
@@ -130,11 +131,12 @@ const login = asyncHandler(async (req, res) => {
   if (!(await user.isCorrectPassword(password)))
     throw new Error("Email hoặc mật khẩu không đúng.");
 
-  generateAccessToken(user._id, user.role, res);
+  const token = generateAccessToken(user._id, user.role, res);
 
   return res.status(200).json({
     success: true,
     mes: "Đã đăng nhập thành công.",
+    token,
   });
 });
 
@@ -157,23 +159,25 @@ const loginWithGoogle = asyncHandler(async (req, res) => {
     });
 
     if (!new_user) throw new Error("Không thể đăng ký người dùng.");
-    generateAccessToken(new_user._id, new_user.role, res);
+    const token = generateAccessToken(new_user._id, new_user.role, res);
 
     return res.status(new_user ? 200 : 500).json({
       success: !!new_user,
       mes: new_user
         ? "Đăng nhập bằng google thành công."
         : "Đăng nhập thất bại.",
+      token,
     });
   }
 });
 
 const checkNewUserFromEmail = asyncHandler(async (req, res) => {
   const { email } = req.params;
+  let token;
 
   const user = await User.findOne({ email });
-  if (user) generateAccessToken(user._id, user.role, res);
-  return res.json({ success: true, hasUser: !!user });
+  if (user) token = generateAccessToken(user._id, user.role, res);
+  return res.json({ success: true, hasUser: !!user, token });
 });
 
 const checkVerifiedUserFromUserName = asyncHandler(async (req, res) => {

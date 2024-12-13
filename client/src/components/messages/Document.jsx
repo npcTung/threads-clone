@@ -1,8 +1,9 @@
 import React, { memo } from "react";
 import { Button, UserAvatar } from "..";
 import icons from "@/lib/icons";
-import { cn, extractLinks } from "@/lib/utils";
+import { bytesToMB, cn } from "@/lib/utils";
 import { formatDate } from "date-fns";
+import { toast } from "sonner";
 
 const { Check, CheckCheck, File, Download } = icons;
 
@@ -12,9 +13,23 @@ const Document = ({
   timestamp,
   read_receipt,
   className,
-  content,
+  document,
 }) => {
-  const { originalString } = extractLinks(content);
+  const handleDowload = async () => {
+    const response = await fetch(document.url);
+    const blod = await response.blob();
+    zip.file(document.name, blod);
+
+    zip.generateAsync({ type: "blob" }).then((content) => {
+      const link = document.createElement("a");
+      const url = window.URL.createObjectURL(content);
+      link.href = url;
+      link.download = "files.zip";
+      link.click();
+      window.URL.revokeObjectURL(url);
+      toast.success("Tải xuống thành công.");
+    });
+  };
 
   return (
     <div className={cn(className, incoming && "justify-end")}>
@@ -44,30 +59,32 @@ const Document = ({
               <div className="p-2 rounded-md bg-primary border">
                 <File className="size-6" />
               </div>
-              <div className="flex flex-col">
-                <span>admin_v1.0.zip</span>
-                <small className="font-medium opacity-50">12.5MB</small>
+              <div className="flex flex-col text-black">
+                <span className="line-clamp-1">{document.name}</span>
+                <small className="font-medium opacity-50">
+                  {`${bytesToMB(document.size)} MB`}
+                </small>
               </div>
             </div>
-            <Button variant="outline" size="icon" className="bg-primary">
+            <Button
+              variant="outline"
+              size="icon"
+              className="bg-primary"
+              onClick={handleDowload}
+            >
               <Download className="size-5" />
             </Button>
           </div>
-          <span
-            dangerouslySetInnerHTML={{
-              __html: originalString,
-            }}
-          />
         </div>
         <div
           className={cn(
             "flex flex-row items-center space-x-2",
             incoming && "justify-end",
-            read_receipt === "read" && "text-muted-foreground"
+            read_receipt && "text-muted-foreground"
           )}
         >
           <div className="flex flex-row items-center space-x-1 opacity-50">
-            {read_receipt !== "sent" ? (
+            {read_receipt ? (
               <CheckCheck className="size-4" />
             ) : (
               <Check className="size-4" />

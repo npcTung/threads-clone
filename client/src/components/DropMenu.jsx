@@ -21,14 +21,19 @@ import { toast } from "sonner";
 import useCurrentStore from "@/zustand/useCurrentStore";
 import PropTypes from "prop-types";
 import useAppStore from "@/zustand/useAppStore";
+import { socket } from "@/lib/socketConfig";
+import useConversationStore from "@/zustand/useConversationStore";
 
-const { AlignLeft, Sun, Moon, LogOutIcon, UserIcon, Monitor, Check } = icons;
+const { AlignLeft, Sun, Moon, LogOutIcon, UserIcon, Monitor, Check, Settings } =
+  icons;
 
 const DropMenu = ({ className }) => {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const { currentData, clearCurrentData } = useCurrentStore();
-  const { clearAppData } = useAppStore();
+  const { clearAppData, isShowSetting, setIsShowSetting } = useAppStore();
+  const { clearConversation, setConversation, conversation } =
+    useConversationStore();
 
   const handleLogout = async () => {
     try {
@@ -36,6 +41,8 @@ const DropMenu = ({ className }) => {
       if (response.success) {
         clearCurrentData();
         clearAppData();
+        clearConversation();
+        socket.disconnect();
         navigate(`/${path.AUTH}/${path.LOGIN}`);
       }
     } catch (error) {
@@ -51,14 +58,25 @@ const DropMenu = ({ className }) => {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="start">
-        <DropdownMenuLabel className="cursor-default">{`Looged in as @Tungdeptrai`}</DropdownMenuLabel>
+        <DropdownMenuLabel className="cursor-default">{`Looged in as @${currentData.userName}`}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <Link to={`/${currentData?.userName}`}>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem
+            className="cursor-pointer"
+            onClick={() => conversation && setConversation(null)}
+          >
             <UserIcon className="mr-2 size-4" />
             Trang cá nhân
           </DropdownMenuItem>
         </Link>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={() => setIsShowSetting(isShowSetting)}
+        >
+          <Settings className="mr-2 size-4" />
+          Cài đặt
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuSub>
           <DropdownMenuSubTrigger className="cursor-pointer">

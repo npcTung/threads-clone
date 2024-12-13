@@ -2,6 +2,7 @@ const Post = require("../models/post.model");
 const User = require("../models/user.model");
 const Comment = require("../models/comment.model");
 const Activity = require("../models/activity.model");
+const ActivityLog = require("../models/activity-log.model");
 const asyncHandler = require("express-async-handler");
 const cloudinary = require("cloudinary").v2;
 
@@ -32,9 +33,13 @@ const createPost = asyncHandler(async (req, res) => {
     throw new Error(`Nội dung phải ít hơn ${maxlength} ký tự.`);
 
   const newPost = await Post.create({ postedBy, context });
+
   let getPost;
-  if (newPost)
+
+  if (newPost) {
     getPost = await Post.findById(newPost._id).populate(postedByPopulate);
+    await ActivityLog.create({ userId: id, postId: getPost._id, type: "Post" });
+  }
 
   return res.status(newPost ? 200 : 500).json({
     success: newPost ? true : false,
@@ -172,9 +177,19 @@ const deletePost = asyncHandler(async (req, res) => {
 
   const deletedPost = await Post.findByIdAndDelete(postId);
 
-  if (deletedPost && post.filenames && post.filenames.length) {
-    cloudinary.api.delete_resources(post.filenames);
-    cloudinary.api.delete_resources(post.filenames, { resource_type: "video" });
+  if (deletedPost) {
+    await ActivityLog.deleteMany({
+      postId: deletedPost._id,
+      userId: deletedPost.postedBy,
+    });
+    await Comment.deleteMany({ postId: deletedPost._id });
+
+    if (post.filenames && post.filenames.length) {
+      cloudinary.api.delete_resources(post.filenames);
+      cloudinary.api.delete_resources(post.filenames, {
+        resource_type: "video",
+      });
+    }
   }
 
   return res.status(200).json({
@@ -219,6 +234,11 @@ const likeUnlikePost = asyncHandler(async (req, res) => {
         postId,
         type: "Like",
       });
+      await ActivityLog.deleteOne({
+        postId: unlike._id,
+        userId: id,
+        type: "Like",
+      });
     }
     return res.status(unlike ? 200 : 404).json({
       success: !!unlike,
@@ -233,6 +253,11 @@ const likeUnlikePost = asyncHandler(async (req, res) => {
     const like = await post.save({ new: true, validateModifiedOnly: true });
     if (like) {
       await User.findByIdAndUpdate(id, { $push: { likedPosts: postId } });
+      await ActivityLog.create({
+        postId: like._id,
+        userId: id,
+        type: "Like",
+      });
       if (like.postedBy._id.toString() !== id)
         await Activity.create({
           isSuerId: id,
@@ -362,10 +387,10 @@ const getUserPosts = asyncHandler(async (req, res) => {
 
   const nextCursor = posts.length > pageSize ? posts[pageSize]._id : null;
 
-  res.status(posts.length ? 200 : 404).json({
-    success: posts.length ? true : false,
-    mes: !posts.length ? "Bài viết không tìm thấy." : undefined,
-    data: posts.length ? dataPosts.slice(0, pageSize) : undefined,
+  res.status(dataPosts.length ? 200 : 404).json({
+    success: dataPosts.length ? true : false,
+    mes: !dataPosts.length ? "Bài viết không tìm thấy." : undefined,
+    data: dataPosts.length ? dataPosts.slice(0, pageSize) : undefined,
     nextCursor,
   });
 });

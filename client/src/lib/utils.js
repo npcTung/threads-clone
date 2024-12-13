@@ -57,3 +57,11 @@ export const extractLinks = (inputString) => {
     links: linksArray,
   };
 };
+
+export const bytesToMB = (bytes) => (bytes / (1024 * 1024)).toFixed(2);
+
+export const compareTime = (timestamp) => {
+  const createdAt = new Date(timestamp).getTime();
+  const currentDate = new Date().getTime();
+  return Math.abs(currentDate - createdAt) >= 3600000;
+};

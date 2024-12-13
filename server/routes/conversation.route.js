@@ -3,14 +3,14 @@ const conversationController = require("../controllers/conversation.controller")
 const { verifyAccessToken } = require("../middlewares/verifyToken");
 
 router.get(
-  "/get-conversation",
+  "/",
   [verifyAccessToken],
-  conversationController.getConversations
+  conversationController.getAllConversations
 );
-router.post(
-  "/start-conversation/:uid",
+router.get(
+  "/:recipientId",
   [verifyAccessToken],
-  conversationController.startConversation
+  conversationController.getConversation
 );
 
 module.exports = router;

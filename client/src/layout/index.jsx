@@ -55,6 +55,7 @@ const Router = () => {
         { path: path.POSTS__ID, element: <PostDetail /> },
         { path: path.ACTIVITY, element: <Activity /> },
         { path: path.MESSAGER, element: <Chats /> },
+        { path: path.MESSAGER__ID, element: <Chats /> },
         { path: path.NOT_FOUND, element: <NotFound /> },
         {
           path: path.ALL,

@@ -84,7 +84,7 @@ const DialogCreatePost = ({ open, onOpenChange }) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={"max-sm:size-full md:w-[80vh] max-w-none"}>
+      <DialogContent className={"max-xl:size-full max-xl:max-w-none"}>
         <DialogHeader>
           <DialogTitle>Tạo bài viết</DialogTitle>
           <DialogDescription />

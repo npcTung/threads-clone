@@ -7,14 +7,12 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
-  DialogEditComment,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
   InfiniteScrollContainer,
   LoadingButton,
@@ -34,10 +32,10 @@ import { getAllCommentsPost } from "./actions";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useDeleteCommentMutation, useLikeCommentMutation } from "./mutations";
 
-const { ChevronRight, Dot, Heart, Ellipsis, SquarePen, Trash2, LoaderCircle } =
-  icons;
+const { ChevronRight, Dot, Heart, Ellipsis, Trash2, LoaderCircle } = icons;
 
 const Comments = ({ postId }) => {
+  const queryKey = ["comments", postId];
   const {
     data,
     fetchNextPage,
@@ -46,7 +44,7 @@ const Comments = ({ postId }) => {
     isFetchingNextPage,
     status,
   } = useInfiniteQuery({
-    queryKey: ["comments", postId],
+    queryKey: queryKey,
     queryFn: ({ pageParam }) => getAllCommentsPost(postId, pageParam),
     initialPageParam: null,
     getNextPageParam: (lastPage) => lastPage?.nextCursor,
@@ -87,7 +85,7 @@ const Comments = ({ postId }) => {
           onBottomReached={() => hasNextPage && !isFetching && fetchNextPage()}
         >
           {datas?.comments.map((data) => (
-            <Comment key={data._id} data={data} postId={postId} />
+            <Comment key={data._id} data={data} />
           ))}
           {isFetchingNextPage && (
             <LoaderCircle className="mx-auto size-5 animate-spin" />
@@ -100,12 +98,11 @@ const Comments = ({ postId }) => {
 
 export default Comments;
 
-const Comment = ({ data, postId }) => {
+const Comment = ({ data }) => {
   const [showDeteteComment, setShowDeteteComment] = useState(false);
-  const [showEditComment, setShowEditComment] = useState(false);
   const { currentData } = useCurrentStore();
   const isLike = data.likes.includes(currentData._id);
-  const mutation = useLikeCommentMutation(postId);
+  const mutation = useLikeCommentMutation(data.postId);
 
   return (
     <>
@@ -113,17 +110,8 @@ const Comment = ({ data, postId }) => {
       <DialogDeleteComment
         open={showDeteteComment}
         onOpenChange={() => setShowDeteteComment(false)}
-        postId={postId}
+        postId={data.postId}
         commentId={data._id}
-      />
-      {/* edit comment */}
-      <DialogEditComment
-        commentId={data._id}
-        context={data.context}
-        data={currentData}
-        onOpenChange={setShowEditComment}
-        open={showEditComment}
-        postId={postId}
       />
       <div className={"w-full flex items-center justify-between p-5 border-b"}>
         <div className="flex gap-3 w-full">
@@ -165,10 +153,7 @@ const Comment = ({ data, postId }) => {
                   </TooltipProvider>
                 </div>
                 {data.userId._id === currentData._id && (
-                  <DropComment
-                    setShowDeletecomment={setShowDeteteComment}
-                    setShowEditComment={setShowEditComment}
-                  />
+                  <DropComment setShowDeletecomment={setShowDeteteComment} />
                 )}
               </div>
               <div className="flex items-center justify-between">
@@ -194,21 +179,13 @@ const Comment = ({ data, postId }) => {
   );
 };
 
-const DropComment = ({ setShowDeletecomment, setShowEditComment }) => {
+const DropComment = ({ setShowDeletecomment }) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Ellipsis className="cursor-pointer size-7 p-1 rounded-full hover:bg-muted" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="rigth" align="start">
-        <DropdownMenuItem
-          className="flex items-center justify-between gap-5 cursor-pointer"
-          onClick={setShowEditComment}
-        >
-          <span>Sửa</span>
-          <SquarePen className="size-5" />
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem
           className="flex items-center justify-between gap-5 cursor-pointer text-red-600"
           onClick={setShowDeletecomment}

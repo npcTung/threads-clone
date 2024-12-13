@@ -13,7 +13,7 @@ const storage = new CloudinaryStorage({
   params: {
     folder: "social_media_app",
     resource_type: "auto",
-    allowed_formats: ["jpg", "png", "mp4", "webp"],
+    allowed_formats: null,
   },
 });
 

@@ -51,6 +51,7 @@ var userSchema = new mongoose.Schema(
     role: { type: String, enum: ["Admin", "User"], default: "User" },
     blockedUsers: [{ type: mongoose.Types.ObjectId, ref: "User" }],
     status: { type: String, enum: ["Online", "Offline"], default: "Offline" },
+    status_expiry_time: Date,
     socketId: String,
   },
   { timestamps: true }

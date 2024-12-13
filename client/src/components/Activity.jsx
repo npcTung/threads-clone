@@ -5,8 +5,10 @@ import path from "@/lib/path";
 import icons from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import useAppStore from "@/zustand/useAppStore";
+import useConversationStore from "@/zustand/useConversationStore";
 import { useQuery } from "@tanstack/react-query";
 import * as apis from "@/apis";
+import useCurrentStore from "@/zustand/useCurrentStore";
 
 const { Heart } = icons;
 
@@ -19,9 +21,13 @@ const markAsRead = async () => {
 };
 
 const fetchUnreadCount = async () => {
+  const { isLoggedIn } = useCurrentStore();
+
   try {
-    const response = await apis.unreadCount();
-    if (response.success) return response.unreadCount;
+    if (isLoggedIn) {
+      const response = await apis.unreadCount();
+      if (response.success) return response.unreadCount;
+    }
   } catch (error) {
     console.error(error.message);
   }
@@ -29,9 +35,11 @@ const fetchUnreadCount = async () => {
 
 const Activity = ({ pathName }) => {
   const { unreadCount, setUnreadCount } = useAppStore();
+  const { setConversation, conversation } = useConversationStore();
+  const queryKey = ["activities", "unread_count"];
 
   const { data } = useQuery({
-    queryKey: ["activities", "unread_count"],
+    queryKey: queryKey,
     queryFn: fetchUnreadCount,
     staleTime: 5000,
   });
@@ -50,8 +58,8 @@ const Activity = ({ pathName }) => {
         <div
           className="relative"
           onClick={() => {
-            markAsRead();
-            setUnreadCount(0);
+            unreadCount > 0 && (markAsRead(), setUnreadCount(0));
+            conversation && setConversation(null);
           }}
         >
           <Heart

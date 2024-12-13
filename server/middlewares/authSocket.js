@@ -1,15 +1,14 @@
 const jwt = require("jsonwebtoken");
 
 module.exports = (socket, next) => {
-  const token = socket.handshake.auth?.token;
   try {
-    const decoded = jwt.verify(token, process.env.SECRET_KEY, {
-      expiresIn: "7d",
-    });
+    const token = socket.handshake.auth.token;
+    if (!token) next(new Error("Authentication error: Token is required."));
+
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
     socket.user = decoded;
+    next();
   } catch (error) {
-    const socketError = new Error("NOT_AUTHORIZED");
-    return next(socketError);
+    next(new Error("Authentication error: " + error.message));
   }
-  next();
 };

@@ -1,5 +1,6 @@
 const User = require("../models/user.model");
 const Activity = require("../models/activity.model");
+const ActivityLog = require("../models/activity-log.model");
 const filterObj = require("../lib/filterObj");
 const asyncHandler = require("express-async-handler");
 const cloudinary = require("cloudinary").v2;
@@ -16,6 +17,10 @@ const getCurrent = asyncHandler(async (req, res) => {
       },
       {
         path: "follower",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+      {
+        path: "blockedUsers",
         select: "-verified -password -role -otp -otp_expiry_time",
       },
     ]);
@@ -56,6 +61,7 @@ const getUsers = asyncHandler(async (req, res) => {
     formatedQueries["$or"] = [
       { userName: { $regex: req.query.q, $options: "i" } },
       { displayName: { $regex: req.query.q, $options: "i" } },
+      { email: { $regex: req.query.q, $options: "i" } },
     ];
   }
 
@@ -151,6 +157,10 @@ const updateUser = asyncHandler(async (req, res) => {
       path: "follower",
       select: "-verified -password -role -otp -otp_expiry_time",
     },
+    {
+      path: "blockedUsers",
+      select: "-verified -password -role -otp -otp_expiry_time",
+    },
   ]);
 
   return res.status(updateUser ? 200 : 400).json({
@@ -222,6 +232,7 @@ const followUnfollow = asyncHandler(async (req, res) => {
       recipientId: userToModify._id,
       type: "Follow",
     });
+    await ActivityLog.deleteMany({ userId: id, type: "Follow" });
     return res.status(200).json({
       success: true,
       mes: "Bỏ theo dõi người dùng thành công.",
@@ -243,12 +254,17 @@ const followUnfollow = asyncHandler(async (req, res) => {
         path: "follower",
         select: "-verified -password -role -otp -otp_expiry_time",
       },
+      {
+        path: "blockedUsers",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
     ]);
     await Activity.create({
       isSuerId: currentUser._id,
       recipientId: userToModify._id,
       type: "Follow",
     });
+    await ActivityLog.create({ userId: id, type: "Follow" });
     return res.status(200).json({
       success: true,
       mes: "Theo dõi người dùng thành công.",
@@ -273,21 +289,62 @@ const blockAccount = asyncHandler(async (req, res) => {
 
   if (isBlocked) {
     // unblock
-    await User.findByIdAndUpdate(id, { $pull: { blockedUsers: uid } });
+    const unblock = await User.findByIdAndUpdate(
+      id,
+      {
+        $pull: { blockedUsers: uid },
+      },
+      { new: true, validateModifiedOnly: true }
+    ).populate([
+      {
+        path: "following",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+      {
+        path: "follower",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+      {
+        path: "blockedUsers",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+    ]);
     return res.status(200).json({
       success: true,
-      message: "Người dùng đã được bỏ chặn thành công.",
+      mes: "Người dùng đã được bỏ chặn thành công.",
+      data: unblock,
     });
   } else {
     // block
-    await User.findByIdAndUpdate(id, { $push: { blockedUsers: uid } });
+    const block = await User.findByIdAndUpdate(
+      id,
+      {
+        $push: { blockedUsers: uid },
+      },
+      { new: true, validateModifiedOnly: true }
+    ).populate([
+      {
+        path: "following",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+      {
+        path: "follower",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+      {
+        path: "blockedUsers",
+        select: "-verified -password -role -otp -otp_expiry_time",
+      },
+    ]);
     if (currentUser.following.includes(uid)) {
       await User.findByIdAndUpdate(uid, { $pull: { follower: id } });
       await User.findByIdAndUpdate(id, { $pull: { following: uid } });
     }
-    return res
-      .status(200)
-      .json({ success: true, message: "Người dùng đã bị chặn thành công." });
+    return res.status(200).json({
+      success: true,
+      mes: "Người dùng đã bị chặn thành công.",
+      data: block,
+    });
   }
 });
 

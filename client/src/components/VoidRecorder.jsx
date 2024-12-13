@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Button,
   Dialog,
@@ -10,8 +10,17 @@ import {
   DialogTitle,
 } from "./ui";
 import { AudioRecorder, useAudioRecorder } from "react-audio-voice-recorder";
+import { LoadingButton } from ".";
+import { useSendMessageAudioMutation } from "./chats/mutation";
+import icons from "@/lib/icons";
 
-const VoidRecorder = ({ open, onOpenChange }) => {
+const { File } = icons;
+
+const VoidRecorder = ({ open, onOpenChange, recipientId }) => {
+  const [audio, setAudio] = useState("");
+  const [urlAudio, setUrlAudio] = useState(null);
+  const mutation = useSendMessageAudioMutation();
+
   const recorderControls = useAudioRecorder(
     {
       noiseSuppression: true,
@@ -21,18 +30,26 @@ const VoidRecorder = ({ open, onOpenChange }) => {
   );
 
   const addAudioElement = (blod) => {
-    const url = URL.createObjectURL(blod);
+    const reader = new FileReader();
+    reader.onload = () => setUrlAudio(reader.result);
+    reader.readAsDataURL(blod);
+    setAudio(blod);
+  };
 
-    const audio = document.createElement("audio");
-    audio.src = url;
-    audio.controls = true;
+  const handleSumbit = () => {
+    const payload = { audio, recipientId };
+    mutation.mutate(payload, { onSuccess: onClose });
+  };
 
-    const targetContainer = document.getElementById("audio-container");
-    targetContainer.appendChild(audio);
+  const onClose = () => {
+    setAudio("");
+    setUrlAudio(null);
+    onOpenChange(false);
+    recorderControls.stopRecording();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle />
@@ -41,25 +58,48 @@ const VoidRecorder = ({ open, onOpenChange }) => {
         <div className="size-full space-y-8">
           <div
             id="audio-container"
-            className="flex flex-col space-y-8 items-center"
+            className="flex space-x-8 w-full items-center justify-between"
           >
-            <AudioRecorder
-              showVisualizer={true}
-              onRecordingComplete={(blod) => addAudioElement(blod)}
-              recorderControls={recorderControls}
-              downloadOnSavePress={true}
-              downloadFileExtension="mp3"
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" className="w-full">
-              Gửi
+            <div className="w-full flex items-center justify-center">
+              <AudioRecorder
+                showVisualizer={true}
+                onRecordingComplete={(blod) => addAudioElement(blod)}
+                recorderControls={recorderControls}
+                // downloadOnSavePress={true}
+                // downloadFileExtension="mp3"
+              />
+            </div>
+            <Button size="icon" title={"Chọn tệp âm thanh từ máy."}>
+              <label htmlFor="audio" className="cursor-pointer">
+                <File className="size-5" />
+                <input
+                  type="file"
+                  id="audio"
+                  hidden
+                  accept=".mp3,.wav,.ogg,.aac,.flac,.m4a,.wma"
+                  onChange={(e) => addAudioElement(e.target.files[0])}
+                />
+              </label>
             </Button>
-            <DialogClose className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">
-              Hủy
-            </DialogClose>
-          </DialogFooter>
+          </div>
+          {urlAudio && <audio src={urlAudio} controls className="w-full" />}
         </div>
+        <DialogFooter>
+          <LoadingButton
+            onClick={handleSumbit}
+            loading={mutation.isPending}
+            disabled={mutation.isPending || audio === ""}
+            variant="outline"
+            className="w-full"
+          >
+            Gửi
+          </LoadingButton>
+          <DialogClose asChild>
+            <Button variant="destructive" className="w-full">
+              Hủy
+            </Button>
+          </DialogClose>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

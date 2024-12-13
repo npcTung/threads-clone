@@ -16,7 +16,6 @@ import {
   UserTooltip,
 } from "@/components";
 import icons from "@/lib/icons";
-import path from "@/lib/path";
 import { cn, formatRelativeDate, formmatNumber } from "@/lib/utils";
 import useCurrentStore from "@/zustand/useCurrentStore";
 import { formatDate } from "date-fns";
@@ -119,7 +118,7 @@ const PostHeader = ({
             <div className="flex w-full items-center">
               <UserTooltip user={data.postedBy}>
                 <Link
-                  to={`/${path.USER}/${data.postedBy.userName}`}
+                  to={`/${data.postedBy.userName}`}
                   className="text-sm font-medium hover:underline"
                 >
                   {data.postedBy.userName}

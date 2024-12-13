@@ -1,74 +1,96 @@
 const Conversation = require("../models/conversation.model");
-const User = require("../models/user.model");
+const Message = require("../models/message.model");
 const asyncHandler = require("express-async-handler");
 
-const startConversation = asyncHandler(async (req, res) => {
-  const { uid } = req.params;
+const getAllConversations = asyncHandler(async (req, res) => {
   const { id } = req.user;
+  const queries = { ...req.query };
+  const cursor = queries.cursor || null;
+  const pageSize = 10;
+  let queryString = JSON.stringify(queries);
+  queryString = queryString.replace(
+    /\b(gte|gt|lt|lte)\b/g,
+    (macthedEl) => `$${macthedEl}`
+  );
 
-  const user = await User.findById(id);
-  if (!user) throw new Error("Không tìm thấy người dùng.");
+  const objectQueries = JSON.parse(queryString);
+  if (cursor) {
+    objectQueries._id = { $lte: cursor };
+    objectQueries.participants = { $in: id };
+  } else objectQueries.participants = { $in: id };
+  if (req.query.q) {
+    delete objectQueries.q;
+    objectQueries["$or"] = [
+      { nameConversation: { $regex: req.query.q, $options: "i" } },
+    ];
+  }
 
-  const conversation = await Conversation.findOne({
-    participants: { $all: [uid, id] },
-  }).populate([
-    {
-      path: "participants",
-      select: "-verified -password -role -otp -otp_expiry_time",
-    },
-    { path: "messages" },
-  ]);
+  const conversations = await Conversation.find(objectQueries)
+    .populate([
+      {
+        path: "participants",
+        select:
+          "_id userName displayName avatarUrl status bio socketId status_expiry_time",
+      },
+      {
+        path: "lastMessage.senderId",
+        select:
+          "_id userName displayName avatarUrl status bio socketId status_expiry_time",
+      },
+    ])
+    .sort({ createdAt: -1 })
+    .limit(pageSize + 1)
+    .exec();
 
-  if (conversation)
-    return res.status(200).json({
-      success: true,
-      data: conversation,
+  const dataConversations = [];
+
+  for (let conversation of conversations) {
+    const countReadMessages = await Message.countDocuments({
+      conversationId: conversation._id,
+      senderId: { $ne: id },
+      read: false,
     });
-  else {
-    let newConversation = await Conversation.create({
-      participants: [uid, id],
-    });
 
-    newConversation = await Conversation.findById(newConversation._id).populate(
-      [
-        {
-          path: "participants",
-          select: "-verified -password -role -otp -otp_expiry_time",
-        },
-        { path: "messages" },
-      ]
-    );
-
-    return res.status(201).json({
-      success: true,
-      data: newConversation,
+    dataConversations.push({
+      ...conversation._doc,
+      unreadCount: countReadMessages,
     });
   }
-});
 
-const getConversations = asyncHandler(async (req, res) => {
-  const { id } = req.user;
+  const nextCursor =
+    dataConversations.length > pageSize
+      ? dataConversations[pageSize]._id
+      : null;
 
-  const user = await User.findById(id);
-  if (!user) throw new Error("Không tìm thấy người dùng.");
-
-  const conversations = await Conversation.find({
-    participants: { $in: [id] },
-  }).populate([
-    {
-      path: "participants",
-      select: "-verified -password -role -otp -otp_expiry_time",
-    },
-    { path: "messages" },
-  ]);
-
-  return res.status(conversations.length ? 200 : 404).json({
-    success: !!conversations.length,
-    mes: !conversations.length
-      ? "Không tìm thấy cuộc hội thoại nào."
-      : undefined,
-    data: conversations.length ? conversations : undefined,
+  res.status(dataConversations.length ? 200 : 404).json({
+    success: !!dataConversations.length,
+    mes: dataConversations.length
+      ? undefined
+      : "Không tìm thấy cuộc trò truyện nào.",
+    data: dataConversations.length ? dataConversations : undefined,
+    nextCursor,
   });
 });
 
-module.exports = { startConversation, getConversations };
+const getConversation = asyncHandler(async (req, res) => {
+  const { recipientId } = req.params;
+  const { id: senderId } = req.user;
+
+  const conversation = await Conversation.findOne({
+    participants: { $all: [senderId, recipientId] },
+  }).populate([
+    {
+      path: "participants",
+      select: "_id userName displayName avatarUrl status socketId",
+    },
+    { path: "lastMessage", select: "_id content" },
+  ]);
+
+  res.status(conversation ? 200 : 404).json({
+    success: !!conversation,
+    mes: conversation ? undefined : "Không tìm thấy cuộc trò truyện nào.",
+    data: conversation ? conversation : undefined,
+  });
+});
+
+module.exports = { getAllConversations, getConversation };

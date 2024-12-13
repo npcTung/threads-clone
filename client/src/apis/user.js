@@ -44,3 +44,9 @@ export const followUser = (userId) =>
     url: endpoints.user.follow_unfollow + userId,
     method: "PUT",
   });
+
+export const blockAccount = (uid) =>
+  axiosConfig({
+    url: endpoints.user.block_unblock_account + uid,
+    method: "PUT",
+  });

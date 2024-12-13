@@ -1,5 +1,5 @@
 import icons from "@/lib/icons";
-import { cn, extractLinks } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import React, { memo } from "react";
 import { UserAvatar, Waveform } from "..";
 import { formatDate } from "date-fns";
@@ -12,10 +12,8 @@ const Voice = ({
   timestamp,
   read_receipt,
   className,
-  content,
+  audio,
 }) => {
-  const { originalString } = extractLinks(content);
-
   return (
     <div className={cn(className, incoming && "justify-end")}>
       {!incoming && (
@@ -39,22 +37,17 @@ const Voice = ({
               : "rounded-br-none bg-primary text-primary-foreground"
           )}
         >
-          <Waveform incoming={incoming} />
-          <span
-            dangerouslySetInnerHTML={{
-              __html: originalString,
-            }}
-          />
+          <Waveform incoming={incoming} audioUrl={audio.url} />
         </div>
         <div
           className={cn(
             "flex flex-row items-center space-x-2",
             incoming && "justify-end",
-            read_receipt === "read" && "text-muted-foreground"
+            read_receipt && "text-muted-foreground"
           )}
         >
           <div className="flex flex-row items-center space-x-1 opacity-50">
-            {read_receipt !== "sent" ? (
+            {read_receipt ? (
               <CheckCheck className="size-4" />
             ) : (
               <Check className="size-4" />

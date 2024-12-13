@@ -2,7 +2,6 @@ import {
   FollowerCount,
   InfiniteScrollContainer,
   Input,
-  LoadingScreen,
   UserAvatar,
   UserTooltip,
   useTheme,

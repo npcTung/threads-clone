@@ -51,12 +51,8 @@ export const fetchGetUserPosts = async (userName, cursor) => {
 };
 
 export const fetchGetUser = async (userName) => {
-  try {
-    const response = await apis.getUser(userName);
-    if (response.success) return response.data;
-  } catch (error) {
-    console.error(error.message);
-  }
+  const response = await apis.getUser(userName);
+  if (response.success) return response.data;
 };
 
 export const fetchActivities = async (cursor) => {
@@ -70,4 +66,9 @@ export const fetchActivities = async (cursor) => {
   } catch (error) {
     console.error(error.message);
   }
+};
+
+export const getConversation = async (recipientId) => {
+  const response = await apis.getConversation(recipientId);
+  if (response.success) return response.data;
 };

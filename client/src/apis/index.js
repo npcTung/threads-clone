@@ -4,3 +4,6 @@ export * from "./user";
 export * from "./posts";
 export * from "./activity";
 export * from "./comment";
+export * from "./conversation";
+export * from "./message";
+export * from "./activity-log";

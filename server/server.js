@@ -1,5 +1,4 @@
-const app = require("./app");
-const socketServer = require("./socketServer");
+require("dotenv").config();
 
 const port = process.env.PORT || 8088;
 
@@ -8,10 +7,12 @@ process.on("uncaughtException", (err) => {
   process.exit(1);
 });
 
+const app = require("./app");
 const http = require("http");
+const { initSocket } = require("./lib/socket");
 
 const server = http.createServer(app);
-socketServer.registerSocketServer(server);
+initSocket(server);
 
 server.listen(port, () => {
   console.log("Server running on port:", port);

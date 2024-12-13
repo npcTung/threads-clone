@@ -3,8 +3,12 @@ const mongoose = require("mongoose"); // Erase if already required
 // Declare the Schema of the Mongo model
 var conversationSchema = new mongoose.Schema(
   {
+    nameConversation: String,
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    messages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }],
+    lastMessage: {
+      type: { type: String },
+      senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    },
   },
   { timestamps: true }
 );

@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn, formatRelativeDate } from "@/lib/utils";
 import React, { useState } from "react";
 import {
   Button,
@@ -15,14 +15,15 @@ import {
   TooltipTrigger,
 } from "../ui";
 import icons from "@/lib/icons";
-import useAppStore from "@/zustand/useAppStore";
 import useCurrentStore from "@/zustand/useCurrentStore";
 import { LoadingButton, UserAvatar } from "..";
 import { toast } from "sonner";
+import useConversationStore from "@/zustand/useConversationStore";
 
-const { X, Clock3, MessageCircle, Video, UserX, Trash2 } = icons;
+const { X, Clock3, UserX, Trash2 } = icons;
 
 const InfoUser = ({ className }) => {
+  const { conversation } = useConversationStore();
   return (
     <div className={cn(className)}>
       {/* Info header */}
@@ -32,7 +33,7 @@ const InfoUser = ({ className }) => {
         }
       />
       {/* Info body */}
-      <InfoBody className={"max-h-full grow"} />
+      <InfoBody className={"max-h-full grow"} data={conversation} />
       {/* Info footer */}
       <InfoFooter
         className={"sticky bottom-0 border-t border-muted px-6 py-5"}
@@ -44,7 +45,7 @@ const InfoUser = ({ className }) => {
 export default InfoUser;
 
 const InfoHeader = ({ className }) => {
-  const { isInfoOpen, setIsInfoOpen } = useAppStore();
+  const { isInfoOpen, setIsInfoOpen } = useConversationStore();
 
   return (
     <div className={cn(className)}>
@@ -62,45 +63,47 @@ const InfoHeader = ({ className }) => {
   );
 };
 
-const InfoBody = ({ className }) => {
+const InfoBody = ({ className, data }) => {
   const { currentData } = useCurrentStore();
+  const userConversation = data.participants.find(
+    (el) => el._id !== currentData._id
+  );
 
   return (
     <div className={cn(className)}>
       <div className="flex justify-center my-8">
         <UserAvatar
-          avatarUrl={currentData.avatarUrl}
-          displayName={currentData.displayName}
+          avatarUrl={userConversation.avatarUrl}
+          displayName={userConversation.displayName}
           className={"size-32"}
         />
       </div>
       <div className="px-6 space-y-1 flex flex-col">
-        <span className="text-lg font-medium">{currentData.displayName}</span>
+        <span className="text-lg font-medium">
+          {userConversation.displayName}
+        </span>
         <span className="text-sm line-clamp-2 whitespace-pre-line opacity-50">
-          {currentData.bio}
+          {userConversation.bio}
         </span>
       </div>
       <div className="px-6 my-6">
-        <div className="flex flex-row items-center space-x-2 opacity-50">
-          <Clock3 className="size-5" />
-          <span>6:50 giờ địa phương</span>
+        <div className="flex flex-row items-center space-x-2">
+          <Clock3 className="size-5 opacity-50" />
+          <span
+            className={cn(
+              "font-medium",
+              userConversation.status === "Online"
+                ? "text-green-600"
+                : "opacity-50"
+            )}
+          >
+            {userConversation.status === "Online"
+              ? "Đang hoạt động"
+              : userConversation.status_expiry_time
+              ? formatRelativeDate(userConversation.status_expiry_time)
+              : "Offline"}
+          </span>
         </div>
-      </div>
-      <div className="px-6 flex flex-row space-x-2">
-        <TooltipIcon
-          className={"opacity-50 hover:opacity-100 transition-all"}
-          context={"Gửi tin nhắn"}
-        >
-          <MessageCircle className="size-5" />
-          <span className="text-sm">Nhắn tin</span>
-        </TooltipIcon>
-        <TooltipIcon
-          className={"opacity-50 hover:opacity-100 transition-all"}
-          context={"Gọi video"}
-        >
-          <Video className="size-5" />
-          <span className="text-sm">Gọi video</span>
-        </TooltipIcon>
       </div>
     </div>
   );
@@ -171,26 +174,24 @@ const DialogBlockAndDeleteConversation = ({ open, onOpenChange, block }) => {
 
   const handleSumbit = () => {
     setIsLoading(true);
-    try {
-      const setTimeoutId = setTimeout(() => {
+    const setTimeoutId = setTimeout(() => {
+      try {
         toast.success(
           block
             ? "Chặn tài khoản thành công."
             : "Xóa đoạn hội thoại thành công."
         );
         onOpenChange(false);
-      }, 2000);
+      } catch (error) {
+        toast.error(error.message);
+        console.error(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 2000);
 
-      return () => clearTimeout(setTimeoutId);
-    } catch (error) {
-      toast.error(error.message);
-      console.error(error.message);
-    } finally {
-      setIsLoading(false);
-    }
+    return () => clearTimeout(setTimeoutId);
   };
-
-  console.log(isLoading);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

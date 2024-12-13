@@ -45,14 +45,8 @@ const getActivities = asyncHandler(async (req, res) => {
 const unreadCount = asyncHandler(async (req, res) => {
   const { id } = req.user;
 
-  const user = await User.findById(id);
-  if (!user)
-    return res
-      .status(404)
-      .json({ success: false, mes: "Không tìm thấy người dùng." });
-
   const unreadCount = await Activity.countDocuments({
-    recipientId: user._id,
+    recipientId: id,
     read: false,
   });
 
@@ -65,16 +59,7 @@ const unreadCount = asyncHandler(async (req, res) => {
 const markAsRead = asyncHandler(async (req, res) => {
   const { id } = req.user;
 
-  const user = await User.findById(id);
-  if (!user)
-    return res
-      .status(404)
-      .json({ success: false, mes: "Không tìm thấy người dùng." });
-
-  await Activity.updateMany(
-    { recipientId: user._id, read: false },
-    { read: true }
-  );
+  await Activity.updateMany({ recipientId: id, read: false }, { read: true });
 
   return res.status(200).json({
     success: true,

@@ -25,7 +25,7 @@ const { RotateCcw } = icons;
 
 const FinalRegister = ({ open, onOpenChange }) => {
   const [otp, setOtp] = useState("");
-  const { email, setEmail, setIsLoggedIn } = useCurrentStore();
+  const { email, setEmail, setIsLoggedIn, setToken } = useCurrentStore();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isSendOtp, setIsSendOtp] = useState(false);
@@ -37,6 +37,7 @@ const FinalRegister = ({ open, onOpenChange }) => {
       if (response.success) {
         toast.success(response.mes);
         setIsLoggedIn(true);
+        setToken(response.token);
         setOtp("");
         setEmail(null);
         onOpenChange();

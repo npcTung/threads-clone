@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Divider } from "..";
 import { formatDate } from "date-fns";
 
@@ -14,4 +14,4 @@ const MsgSeparator = ({ date }) => {
   );
 };
 
-export default MsgSeparator;
+export default memo(MsgSeparator);

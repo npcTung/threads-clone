@@ -17,20 +17,20 @@ import _ from "lodash";
 import { GiphyFetch } from "@giphy/js-fetch-api";
 import { Grid } from "@giphy/react-components";
 import { LoadingButton } from ".";
-import { fa } from "@faker-js/faker";
+import { useSendMessageGiphyMutation } from "./chats/mutation";
 
-const { AlertCircle, Search, SendHorizontal } = icons;
+const { AlertCircle, Search } = icons;
 
 const gf = new GiphyFetch(import.meta.env.VITE_API_GIPHY);
 
-const Giphy = ({ className }) => {
+const Giphy = ({ className, recipientId }) => {
   const gridRef = useRef(null);
   const [value, setValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
   const [gifs, setGifs] = useState([]);
   const [gifUrl, setGifUrl] = useState("");
-  const [isShowSendGifAndMessage, setIsShowSendGifAndMessage] = useState(false);
+  const [isShowSendGif, setIsShowSendGif] = useState(false);
 
   const fetchGifs = async (offset) => gf.search(value, { offset, limit: 10 });
 
@@ -66,7 +66,7 @@ const Giphy = ({ className }) => {
     e.preventDefault();
     const gifUrl = gif.images.original.url;
     setGifUrl(gifUrl);
-    setIsShowSendGifAndMessage(true);
+    setIsShowSendGif(true);
   };
 
   useEffect(() => {
@@ -75,10 +75,11 @@ const Giphy = ({ className }) => {
 
   return (
     <div ref={gridRef} className={cn(className)}>
-      <DialogSendGifAndMessage
-        open={isShowSendGifAndMessage}
-        onOpenChange={setIsShowSendGifAndMessage}
+      <DialogSendGif
+        open={isShowSendGif}
+        onOpenChange={setIsShowSendGif}
         gifUrl={gifUrl}
+        recipientId={recipientId}
       />
       <Input
         value={value}
@@ -128,25 +129,12 @@ const Giphy = ({ className }) => {
 
 export default Giphy;
 
-const DialogSendGifAndMessage = ({ open, onOpenChange, gifUrl }) => {
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+const DialogSendGif = ({ open, onOpenChange, gifUrl, recipientId }) => {
+  const mutation = useSendMessageGiphyMutation();
 
   const handleSumbit = () => {
-    setIsLoading(true);
-    const setTimeoutId = setTimeout(() => {
-      try {
-        console.log({ input, gifUrl });
-        setInput("");
-        onOpenChange(false);
-      } catch (error) {
-        console.error(error.message);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 2000);
-
-    return () => clearTimeout(setTimeoutId);
+    const payload = { giphyUrl: gifUrl, recipientId };
+    mutation.mutate(payload, { onSuccess: () => onOpenChange(false) });
   };
 
   return (
@@ -161,19 +149,14 @@ const DialogSendGifAndMessage = ({ open, onOpenChange, gifUrl }) => {
             <img src={gifUrl} alt={gifUrl} className="size-full object-cover" />
           </div>
           <div className="flex flex-row items-center justify-between space-x-2">
-            <Input
-              placeholder="Nhập tin nhắn..."
-              onChange={(e) => setInput(e.target.value)}
-              className="bg-muted"
-            />
             <LoadingButton
               variant="outline"
-              loading={isLoading}
-              disabled={isLoading}
-              className="bg-muted"
+              loading={mutation.isPending}
+              disabled={mutation.isPending}
+              className="bg-muted w-full"
               onClick={handleSumbit}
             >
-              <SendHorizontal className="size-5 -rotate-45" />
+              Gửi
             </LoadingButton>
           </div>
         </div>

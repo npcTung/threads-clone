@@ -4,6 +4,7 @@ import path from "@/lib/path";
 import icons from "@/lib/icons";
 import { Activity, Button, Messager } from ".";
 import useCurrentStore from "@/zustand/useCurrentStore";
+import useConversationStore from "@/zustand/useConversationStore";
 import PropTypes from "prop-types";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +12,7 @@ const { Home, Search, Plus, UserIcon } = icons;
 
 const MenuBar = ({ className, setShowCreatePost }) => {
   const { currentData } = useCurrentStore();
+  const { setConversation, conversation } = useConversationStore();
   const pathName = window.location.pathname;
 
   return (
@@ -20,6 +22,7 @@ const MenuBar = ({ className, setShowCreatePost }) => {
         variant={"ghost"}
         className="flex items-center justify-start"
         asChild
+        onClick={() => conversation && setConversation(null)}
       >
         <Link to={path.HOME}>
           <Home
@@ -35,6 +38,7 @@ const MenuBar = ({ className, setShowCreatePost }) => {
         variant={"ghost"}
         className="flex items-center justify-start"
         asChild
+        onClick={() => conversation && setConversation(null)}
       >
         <Link to={`/${path.SEARCH}`}>
           <Search
@@ -62,6 +66,7 @@ const MenuBar = ({ className, setShowCreatePost }) => {
         variant={"ghost"}
         className="flex items-center justify-start"
         asChild
+        onClick={() => conversation && setConversation(null)}
       >
         <Link to={`/${currentData?.userName}`}>
           <UserIcon

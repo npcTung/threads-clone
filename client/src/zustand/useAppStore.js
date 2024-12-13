@@ -3,14 +3,14 @@ import { create } from "zustand";
 const useAppStore = create((set) => ({
   unreadCount: 0,
   sortPost: "Threads",
-  isInfoOpen: false,
   isNotication: true,
   isAudio: false,
+  isShowSetting: false,
   setSortPost: (sortPost) => set({ sortPost }),
   setUnreadCount: (unreadCount) => set({ unreadCount }),
-  setIsInfoOpen: (isInfoOpen) => set({ isInfoOpen: !isInfoOpen }),
   setIsNotication: (isNotication) => set({ isNotication: !isNotication }),
   setIsAudio: (isAudio) => set({ isAudio: !isAudio }),
+  setIsShowSetting: (isShowSetting) => set({ isShowSetting: !isShowSetting }),
   clearAppData: () =>
     set({
       sortPost: "Threads",
@@ -18,6 +18,7 @@ const useAppStore = create((set) => ({
       isInfoOpen: false,
       isNotication: true,
       isAudio: false,
+      isShowSetting: false,
     }),
 }));
 

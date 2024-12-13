@@ -1,6 +1,7 @@
 import {
   Button,
   DialogCreatePost,
+  DialogSetting,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,29 +20,39 @@ import useCurrentStore from "@/zustand/useCurrentStore";
 import { cn, setTitle } from "@/lib/utils";
 import useAppStore from "@/zustand/useAppStore";
 import useCurrentData from "@/hooks/useCurrentData";
+import { connectSocket } from "@/lib/socketConfig";
 
 const { Plus, ChevronDown, Check } = icons;
 
 const Home = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const { isLoggedIn, currentData, isLoading } = useCurrentStore();
+  const { isLoggedIn, currentData, isLoading, token } = useCurrentStore();
+  const { sortPost, isShowSetting, setIsShowSetting } = useAppStore();
   const navigate = useNavigate();
   const currentUser = useCurrentData();
-  const { sortPost } = useAppStore();
 
   useEffect(() => {
     if (!isLoggedIn) navigate(`/${path.AUTH}/${path.LOGIN}`);
 
-    if (isLoggedIn) currentUser.getCurrentData();
+    if (isLoggedIn) {
+      currentUser.getCurrentData();
+      connectSocket(token);
+    }
   }, [isLoggedIn]);
 
   if (!currentData || isLoading) return <LoadingScreen />;
 
   return (
     <div className="min-h-screen bg-muted">
+      {/* create post */}
       <DialogCreatePost
         open={showCreatePost}
-        onOpenChange={() => setShowCreatePost(false)}
+        onOpenChange={setShowCreatePost}
+      />
+      {/* show setting */}
+      <DialogSetting
+        open={isShowSetting}
+        onOpenChange={() => setIsShowSetting(isShowSetting)}
       />
       <Navbar />
       <div className="flex w-full">

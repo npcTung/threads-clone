@@ -10,7 +10,6 @@ import {
 import { useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
-import "./styles.css";
 import { EditInput, LoadingButton, UserAvatar } from "..";
 import { useCommentMutation } from "./mutations";
 
@@ -62,7 +61,7 @@ const DialogCreateCommnet = ({ open, onOpenChange, data, postId }) => {
             loading={mutation.isPending}
             variant="outline"
             onClick={() =>
-              mutation.mutate({ context: input }, { onSuccess: onClose() })
+              mutation.mutate({ context: input }, { onSuccess: onClose })
             }
           >
             Đăng

@@ -1,12 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  createComment,
-  deleteComment,
-  likeComment,
-  updateComment,
-} from "./actions";
+import { createComment, deleteComment, likeComment } from "./actions";
 import { toast } from "sonner";
 
+// create comment
 export const useCommentMutation = (postId) => {
   const queryClient = useQueryClient();
 
@@ -45,8 +41,6 @@ export const useCommentMutation = (postId) => {
           return queryFilter.predicate(query) && !query.state.data;
         },
       });
-      queryClient.invalidateQueries(["posts"]);
-      queryClient.invalidateQueries(["detail-post"]);
 
       toast.success(newComment.mes);
     },
@@ -58,58 +52,7 @@ export const useCommentMutation = (postId) => {
 
   return mutation;
 };
-
-export const useUpdateCommentMutation = (cid, postId) => {
-  const queryClient = useQueryClient();
-
-  const updateCommentMutation = async (data) => await updateComment(cid, data);
-
-  const mutation = useMutation({
-    mutationFn: updateCommentMutation,
-    onSuccess: async (updatedComment) => {
-      const queryFilter = {
-        queryKey: ["comments"],
-        predicate(query) {
-          return query.queryKey.includes(postId);
-        },
-      };
-      await queryClient.cancelQueries(queryFilter);
-      queryClient.setQueriesData(queryFilter, (oldData) => {
-        if (!oldData) return;
-
-        return {
-          pageParams: oldData.pageParams,
-          pages: oldData.pages.map((page) => {
-            return {
-              comments: page.comments.map((comment) =>
-                comment._id === updatedComment.data._id
-                  ? updatedComment.data
-                  : comment
-              ),
-              nextCursor: page.nextCursor,
-            };
-          }),
-        };
-      });
-
-      queryClient.invalidateQueries({
-        queryKey: queryFilter.queryKey,
-        predicate(query) {
-          return queryFilter.predicate(query) && !query.state.data;
-        },
-      });
-
-      toast.success(updatedComment.mes);
-    },
-    onError: (error) => {
-      console.error(error);
-      toast.error(error);
-    },
-  });
-
-  return mutation;
-};
-
+// delete comment
 export const useDeleteCommentMutation = (postId) => {
   const queryClient = useQueryClient();
 
@@ -145,8 +88,6 @@ export const useDeleteCommentMutation = (postId) => {
           return queryFilter.predicate(query) && !query.state.data;
         },
       });
-      queryClient.invalidateQueries(["posts"]);
-      queryClient.invalidateQueries(["detail-post"]);
 
       toast.success(deletedComment.mes);
     },
@@ -158,7 +99,7 @@ export const useDeleteCommentMutation = (postId) => {
 
   return mutation;
 };
-
+// like/unlike comment
 export const useLikeCommentMutation = (postId) => {
   const queryClient = useQueryClient();
 

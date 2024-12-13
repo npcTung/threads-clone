@@ -9,11 +9,13 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import React from "react";
 import useAppStore from "@/zustand/useAppStore";
 import { getFeedPosts } from "./actions";
+import useCurrentStore from "@/zustand/useCurrentStore";
 
 const { LoaderCircle } = icons;
 
 const Posts = () => {
   const { sortPost } = useAppStore();
+  const { isLoggedIn } = useCurrentStore();
 
   const {
     data,
@@ -24,7 +26,7 @@ const Posts = () => {
     status,
   } = useInfiniteQuery({
     queryKey: ["posts", sortPost],
-    queryFn: ({ pageParam }) => getFeedPosts(pageParam, sortPost),
+    queryFn: ({ pageParam }) => isLoggedIn && getFeedPosts(pageParam, sortPost),
     initialPageParam: null,
     getNextPageParam: (lastPage) => lastPage?.nextCursor,
     staleTime: 5000,

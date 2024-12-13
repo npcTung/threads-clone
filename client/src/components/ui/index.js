@@ -34,3 +34,5 @@ export * from "./scroll-area";
 export * from "./popover";
 // switch
 export * from "./switch";
+// skeleton
+export * from "./skeleton";
